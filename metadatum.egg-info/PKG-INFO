@@ -1,0 +1,39 @@
+Metadata-Version: 2.1
+Name: metadatum
+Version: 0.1.0
+Summary: Demo library
+Home-page: https://metadatum.readthedocs.io/
+Author: Joffrey Bienvenu
+Author-email: alexmy@lisa-park.com
+License: MIT
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Operating System :: OS Independent
+Description-Content-Type: text/markdown
+
+# Medium multiply
+A small demo library for a Medium publication about publishing libraries.
+
+### Installation
+```
+pip install medium-multiply
+```
+
+### Get started
+How to multiply one number by another with this lib:
+
+```Python
+from metadatum.multiplication import Multiplication
+
+# Instantiate a Multiplication object
+multiplication = Multiplication(2)
+
+# Call the multiply method
+result = multiplication.multiply(5)
+```
