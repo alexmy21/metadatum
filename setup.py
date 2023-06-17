@@ -15,12 +15,12 @@ with open(path.join(HERE, 'README.md'), encoding='utf-8') as f:
 # This call to setup() does all the work
 setup(
     name="metadatum",
-    version="0.1.0",
+    version="0.1.1",
     description="Demo library",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://metadatum.readthedocs.io/",
-    author="Joffrey Bienvenu",
+    author="Alex Mylnikov",
     author_email="alexmy@lisa-park.com",
     license="MIT",
     classifiers=[
@@ -28,10 +28,9 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "Operating System :: OS Independent"
     ],
     packages=["metadatum"],
