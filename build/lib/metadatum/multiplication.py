@@ -27,7 +27,7 @@ class Multiplication:
         return number * self.multiplier
 
 # Instantiate a Multiplication object
-multiplication = Multiplication(2)
+# multiplication = Multiplication(2)
 
 # Call the multiply method
-print(multiplication.multiply(5))
+# print(multiplication.multiply(5))

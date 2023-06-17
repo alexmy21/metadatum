@@ -1,28 +1,27 @@
 Metadata-Version: 2.1
 Name: metadatum
-Version: 0.1.0
+Version: 0.1.1
 Summary: Demo library
 Home-page: https://metadatum.readthedocs.io/
-Author: Joffrey Bienvenu
+Author: Alex Mylnikov
 Author-email: alexmy@lisa-park.com
 License: MIT
 Classifier: Intended Audience :: Developers
 Classifier: License :: OSI Approved :: MIT License
 Classifier: Programming Language :: Python
 Classifier: Programming Language :: Python :: 3
-Classifier: Programming Language :: Python :: 3.6
-Classifier: Programming Language :: Python :: 3.7
-Classifier: Programming Language :: Python :: 3.8
 Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
 Classifier: Operating System :: OS Independent
 Description-Content-Type: text/markdown
 
-# Medium multiply
+# Metadatum
 A small demo library for a Medium publication about publishing libraries.
 
 ### Installation
 ```
-pip install medium-multiply
+pip install metadatum
 ```
 
 ### Get started
