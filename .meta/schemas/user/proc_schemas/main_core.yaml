@@ -1,0 +1,32 @@
+{
+  "namespace": { "type": "string", "default": "user_proc_schemas" },
+  "name": { "type": "string", "default": "main_core" },
+  "prefix": { "type": "string", "default": "main_core" },
+  "label": { "type": "string", "default": "PROCESSOR" },
+  "kind": { "type": "string", "default": "node" },
+
+  "keys":
+    {
+      "required": True,
+      "type": "list",
+      "default": ["version", "package", "url"],
+    },
+  "version": { "type": "string", "default": "str" },
+
+  "props":
+    {
+      "required": True,
+      "type": "dict",
+      "schema":
+        {
+          "__id": { "type": "string", "default": "str" },
+          "version": { "type": "string", "default": "0.1.0" },
+          "package": { "type": "string", "default": "." },
+          "language": { "type": "string", "default": "python" },
+
+          "url": { "type": "string", "default": "str" },
+          "commit_id": { "type": "string", "default": "und" },
+          "commit_status": { "type": "string", "default": "und" },
+        },
+    },
+}

@@ -89,3 +89,6 @@ yarn-error.log
 .pnp.*
 .idea
 token
+
+# Secrets don't go to public repos
+.secrets.*

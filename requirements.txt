@@ -1,1 +1,7 @@
 numpy
+pyyaml
+redis
+cerberus
+cymple
+dynaconf
+textract

@@ -1,0 +1,33 @@
+{
+  "name": { "type": "string", "default": "file" },
+  "namespace": { "type": "string", "default": "user_schemas" },
+  "prefix": { "type": "string", "default": "file" },
+  "label": { "type": "string", "default": "FILE" },
+
+  "kind": { "type": "string", "default": "node" },
+
+  "keys":
+    {
+      "type": "list",
+      "required": True,
+      "default": ["size", "url", "file_type"],
+    },
+  "version": { "type": "string", "default": "str" },
+
+  "props":
+    {
+      "required": True,
+      "type": "dict",
+      "schema":
+        {
+          "__id": { "type": "string", "default": "str" },
+          "parent_id": { "type": "string", "required": True, "default": "str" },
+          "url": { "type": "string", "required": True, "default": "string" },
+          "file_type": { "type": "string", "required": True, "default": "str" },
+          "size": { "type": "integer", "required": True, "default": 0 },
+          "doc": { "type": "string", "default": "str" },
+          "commit_id": { "type": "string", "default": "und"},
+          "commit_status": { "type": "string", "default": "und"}
+        },
+    },
+}

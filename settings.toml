@@ -1,0 +1,8 @@
+[redis]
+    host = "localhost"
+    port = 6379
+
+[indices]
+    dir_core = "schemas/core"
+    dir_user = "schemas/user"
+    idx_reg_file = "schemas/core/core_schemas/idx_reg.yaml"

@@ -1,0 +1,10 @@
+['/home/alexmy/PYTHON/metadatum/.meta/schemas/core_proc_schemas/bootstrap.yaml', 
+'/home/alexmy/PYTHON/metadatum/.meta/schemas/user_schemas/dir.yaml', 
+'/home/alexmy/PYTHON/metadatum/.meta/schemas/user_schemas/file.yaml', 
+'/home/alexmy/PYTHON/metadatum/.meta/schemas/user_proc_schemas/dir_proc.yaml', 
+'/home/alexmy/PYTHON/metadatum/.meta/schemas/user_proc_schemas/file_proc.yaml', 
+'/home/alexmy/PYTHON/metadatum/.meta/schemas/user_proc_schemas/main_core.yaml', 
+'/home/alexmy/PYTHON/metadatum/.meta/schemas/core_schemas/commit.yaml', 
+'/home/alexmy/PYTHON/metadatum/.meta/schemas/core_schemas/commit_tail.yaml', 
+'/home/alexmy/PYTHON/metadatum/.meta/schemas/core_schemas/idx_reg.yaml', 
+'/home/alexmy/PYTHON/metadatum/.meta/schemas/core_schemas/transaction.yaml']

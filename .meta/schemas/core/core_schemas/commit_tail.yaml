@@ -1,0 +1,33 @@
+{
+  "name": { "type": "string", "default": "commit_tail" },
+  "namespace": { "type": "string", "default": "core_schemas" },
+  "prefix": { "type": "string", "default": "commit_tail" },
+  "label": { "type": "string", "default": "COMMIT_TAIL" },
+  "kind": { "type": "string", "default": "node" },
+
+  "keys":
+    {
+      "type": "list",
+      "required": True,
+      "default": ["commit_id", "label", "name", "idx-name", "idx-prefix"],
+    },
+  "version": { "type": "string", "default": "str" },
+
+  "props": { "required": True, "type": "dict", "schema": {
+          "__id": { "type": "string", "default": "str" },
+          # Reference to commit
+          "commit_id": { "type": "string", "default": "str" },
+          "label": { "type": "string", "default": "str" },
+          "name": { "type": "string", "required": True, "default": "str" },
+          # Timestamt of submission to the tail
+          "timestamp": { "type": "string", "default": "" },
+          "idx-name": { "type": "string", "required": True, "default": "str" },
+          "idx_prefix":
+            { "type": "string", "required": True, "default": "str" },
+          "yaml": { "type": "string", "required": True, "default": "str" },
+          "status": { "type": "string", "default": "str" },
+          "doc": { "type": "string", "default": "str" },
+          "commit_id": { "type": "string", "default": "und"},
+          "commit_status": { "type": "string", "default": "und"}
+        } },
+}
