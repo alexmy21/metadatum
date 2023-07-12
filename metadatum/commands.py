@@ -1,6 +1,7 @@
 import os
 import re
-import string
+# import string
+import logging
 
 import redis
 from redis.commands.graph import Graph, Node, Edge
@@ -16,6 +17,8 @@ from metadatum.vocabulary import Vocabulary as voc
 from metadatum.utils import Utils as utl
 
 import textract
+# import nltk, string
+# nltk.download('punkt')
 
 utl.importConfig()
 import config as cnf
@@ -78,7 +81,7 @@ class Commands:
     # Create index
     def createIndex(self, redis, schema_path: str):
         sch = utl.getSchemaFromFile(schema_path) 
-        # print('\n', sch)
+        # logging.debug(f'\n{sch}')
 
         p_dict, n_doc = utl.getProps(sch, schema_path)  
 
@@ -89,13 +92,16 @@ class Commands:
         try:
             index_name = n_doc.get(voc.NAME)
             print('\nINDEX_NAME: ==> ', index_name)
+            print('\nP_DICT: ==> ', p_dict)
             # Create index
             schema = utl.ft_schema(p_dict)
+
+            print('\nSCHEMA: ==> ', schema)
 
             redis.ft(index_name).create_index(schema, definition=IndexDefinition(prefix=[utl.prefix(index_name)]))
             ok = True
         except:
-            print('Index already exists', 'return: ', ok)
+            logging.debug(f'Index already exists, return: {ok}')
 
         return n_doc
 
@@ -112,7 +118,7 @@ class Commands:
             All attributes for the index are taken from the current index schema
             except for the 'prefix' that will attach this instance to IDX_REG index 
         '''
-        idx_reg_dict: dict = {
+        map: dict = {
             voc.NAME: idx.get(voc.NAME),
             voc.NAMESPACE: idx.get(voc.NAMESPACE),
             voc.ITEM_PREFIX: voc.IDX_REG,
@@ -122,7 +128,7 @@ class Commands:
             voc.COMMIT_STATUS: reg.get(voc.PROPS).get(voc.COMMIT_STATUS),
             voc.SOURCE: str(sch)
         }
-        # print('IDX_REG record: {}'.format(idx_reg_dict))
+        # logging.debug('IDX_REG record: {}'.format(idx_reg_dict))
 
         '''
             Create hash record in Redis, hash key is sha1 of the list of keys
@@ -133,10 +139,13 @@ class Commands:
         _pref = utl.underScore(voc.IDX_REG)
         k_list: dict = reg.get(voc.KEYS)
 
-        sha_id = utl.sha1(k_list, idx_reg_dict)
+        sha_id = utl.sha1(k_list, map)
+        # add item ID (__id) to map
+        map[voc.ID] = sha_id
+
         full_id = utl.fullId(_pref, sha_id)
 
-        redis.hset(full_id, mapping=idx_reg_dict)
+        redis.hset(full_id, mapping=map)
 
         return sha_id
 
@@ -144,14 +153,16 @@ class Commands:
         Aggregated functions that support index creation
     '''
     # Create Registry index (IDX_REG) from .yaml file
-    def createRegistryIndex(self, redis, idx_reg_file, proc_name) -> dict|None:        
-        print(idx_reg_file)
+    def createRegistryIndex(self, redis, idx_reg_file, proc_name) -> dict|None: 
+
+        logging.debug(f'{idx_reg_file}')
+
         reg = {}
         idx = {}
         reg = self.createIndex(redis, idx_reg_file)
         idx = reg
 
-        print(reg, '\n', idx)
+        # logging.debug(f'{reg}, \n, {idx}')
 
         sha_id = self.createIndexHash(redis, reg, idx, idx_reg_file)
         hash = self.txCreate(redis, proc_name, reg.get(voc.NAMESPACE), sha_id, reg.get(voc.PREFIX), idx_reg_file, voc.COMPLETE)
@@ -178,8 +189,11 @@ class Commands:
         _pref = utl.underScore(prefix)
 
         sha_id = utl.sha1(key_list, props)
+        # add item ID (__id) to props
+        props[voc.ID] = sha_id
+
         full_id = utl.fullId(_pref, sha_id)
-        redis.hset(full_id, mapping=props)
+        redis.hset(full_id, mapping = props)
 
         return sha_id
         
@@ -192,7 +206,7 @@ class Commands:
         sha_id = utl.sha1_str(term)
         props = {}
         full_id = utl.fullId(voc.BIG_IDX, sha_id)
-        redis.hset(full_id, mapping=props)
+        redis.hset(full_id, mapping = props)
 
         return id
 
@@ -255,7 +269,7 @@ class Commands:
                 map[voc.STATUS] = voc.LOCKED
                 redis.hset(doc.id, mapping=map)
         except:
-            print('error', 'There is no data to process.')
+            logging.error('ERROR: There is no data to process.')
 
 
     '''
@@ -280,33 +294,63 @@ class Commands:
         return redis.ft(idx_name).search(_query)
 
     '''
-        Creates HLL in Redis for the document
-        sha_id is a SHA1 hash from the full id for the item
-        file_name is an absolute path/URL to the file that represents property of the item
-        batch is a number of words to be added to HLL in one transaction
+        Tokenizes provided file, updates BIG_IDX, and Creates HLL in Redis for the document
+        by running Redis function "big_idx_update"
+
+        id - is full or normilized id of the item
+        file_name - is a name of the file that contains text to be processed
+        bucket - is a number of chars from beginning of the sha1 part of the id that will be used as a bucket id
+        batch - is a number of words to be processed in one transaction
     '''
-    def hllDoc(self, redis, sha_id, file_name, batch:int = 10000) -> int|None:
+    def parseDocument(self, redis, id, file_name, bucket:int = 2, batch:int = 7000) -> int|None:
 
         _file_name, file_extension = os.path.splitext(file_name)
-        text = ''
+        text = None
         if file_extension.lower() == '.yaml' or file_extension.lower() == '.yml':
-            text = str(utl.getSchemaFromFile(file_name)) 
+            text = utl.getSchemaFromFile(file_name) 
         else:
             try:
                 text = textract.process(file_name)
             except:
-                print('error', 'Cannot process file: ' + file_name)
-                return None
+                logging.error('Cannot process file: ' + file_name)
+                return 0
+            
+        if isinstance(text, bytes):
+            text = str(text.decode())
+        else:
+            text = str(text)
 
-        t_list = [str(word).strip(string.punctuation) for word in text.split()]
+        
+        tokens = set(text.split())
+        # set(nltk.word_tokenize(text))
 
-        full_id = utl.fullId(utl.underScore(voc.HLL), sha_id)
+        t_set = set()
+        _digits = re.compile('\d')
+        for word in tokens:
+            if isinstance(word, bytes):
+                word = re.sub("[\n\t\.:;\,'\"]", " ", str(word.decode()).lower())
+            else:
+                word = re.sub("[\n\t\.:;\,'\"]", " ", str(word).lower())
 
+            for w in word.split():
+            # set(nltk.word_tokenize(word)):
+                if not bool(_digits.search(w)) and len(w) > 2:
+                    t_set.add(w)
+
+        norm_id = utl.normId(id)
+        
+        function = "big_index_update"
+        t_list = list(t_set)
         for i in range(0, len(t_list), batch):
-            redis.pfadd(full_id, *t_list[i:i + batch])
-            # print('info', 'HLL for ' + full_id + ' is updated with ' + str(i) + ' words.')
+            keys = [norm_id, bucket]
+            keys.extend(t_list[i:i + batch])            
+            redis.fcall(function, 2, *keys)
 
-        return redis.pfcount(full_id)
+        hll_id = utl.underScore(utl.fullId(voc.HLL, utl.getIdShaPart(norm_id)))
+        count = redis.pfcount(hll_id) 
+        print(hll_id, ': ', count)  
+        
+        return count
     
     # convert list to set
     def listToSet(self, redis, list_name, list) -> int|None:
@@ -332,3 +376,12 @@ class Commands:
     def chunks(self, l, n) -> list:
         for i in range(0, len(l), n):
             yield l[i:i + n]
+
+    # load redis library
+    def loadLib(self, redis, lib_path, replace:bool) -> None:
+        code = ''
+        # load file to string
+        with open(lib_path, 'r') as file:
+            code = file.read()
+        # load redis library
+        redis.function_load(code, replace=replace)

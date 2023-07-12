@@ -9,7 +9,7 @@
     {
       "required": True,
       "type": "list",
-      "default": ["cimmit_id", "label", "name", "timestamt"],
+      "default": ["commit_id", "label", "name", "timestamt"],
     },
   "version": { "type": "string", "default": "str" },
 

@@ -1,5 +1,6 @@
 import os
 import redis
+import logging
 
 import utils as utl
 from vocabulary import Vocabulary as voc
@@ -25,7 +26,7 @@ class Controller:
         '''
         cmd = Commands(self.rs)
         schema_path = os.path.join(self.schema_dir, self.schema + '.yaml')
-        # print('Controller: ' + path)
+        # logging.debug(f'Controller: {path}')
         cmd.updateRecord(self.schema, schema_path, self.props, True)
 
     def run(self) -> dict|str|None:

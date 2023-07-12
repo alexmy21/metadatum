@@ -10,7 +10,7 @@
     {
       "type": "list",
       "required": True,
-      "default": ["size", "url", "file_type"],
+      "default": ["size", "parent_id", "url", "file_type"],
     },
   "version": { "type": "string", "default": "str" },
 

@@ -5,4 +5,7 @@
 [indices]
     dir_core = "schemas/core"
     dir_user = "schemas/user"
-    idx_reg_file = "schemas/core/core_schemas/idx_reg.yaml"
+    idx_reg_file = "schemas/core/schemas/idx_reg.yaml"
+
+[scripts]
+    dir_scripts = "scripts"

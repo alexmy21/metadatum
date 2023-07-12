@@ -67,7 +67,7 @@ file_list = utl.listAllFiles(dir_core, '.yaml')
 for schema_file in file_list:
     print(schema_file)
     reg, idx, sha_id = cmd.createUserIndex(r, reg, schema_file, 'main_core')
-    print(cmd.hllDoc(r, sha_id, schema_file))
+    print(cmd.parseDocument(r, 'idx_reg:' + sha_id, schema_file))
 
 time_end = time.perf_counter()
 execution_time = time_end - time_start

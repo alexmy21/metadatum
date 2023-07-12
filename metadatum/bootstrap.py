@@ -25,15 +25,27 @@ class Bootstrap:
 
         dir_core = os.path.join(dir, cnf.settings.indices.dir_core)
 
+
+        # load all libraries
+        dir_func = os.path.join(dir, cnf.settings.scripts.dir_scripts)
+        file_list = utl.listAllFiles(dir_func, '.lua')
+
+        for lib_file in file_list:
+            logging.debug(lib_file)
+            cmd.loadLib(r, lib_file, True)
+
+
         # list all files with ext in directory
         file_list = utl.listAllFiles(dir_core, '.yaml')
 
-        # print(file_list)
-
         for schema_file in file_list:
-            print(schema_file)
+            logging.debug(schema_file)
             reg, idx, sha_id = cmd.createUserIndex(r, reg, schema_file, 'bootstrap')
-            print(cmd.hllDoc(r, sha_id, schema_file))
+            logging.debug(cmd.parseDocument(r, reg.get(voc.PREFIX) + sha_id, schema_file))
 
-    if __name__ == '__main__':
-        boot()
+
+        return reg, idx, sha_id
+
+if __name__ == '__main__':
+    boot = Bootstrap()
+    boot.boot()

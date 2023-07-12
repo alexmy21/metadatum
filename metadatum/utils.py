@@ -2,6 +2,7 @@ import csv
 import importlib
 import re
 import string
+import logging
 
 import os
 import yaml
@@ -40,7 +41,7 @@ class Utils:
         try:
             return importlib.import_module(module, package=package) 
         except ImportError as err:
-            print('Error:', err)
+            logging.error(f'Error: {err}')
             return None
 
     '''
@@ -102,7 +103,7 @@ class Utils:
             p_dict = n_doc.get('props').items() 
             return p_dict, n_doc
         else:
-            print('Inavalid: {}'.format(schema_path))
+            logging.debug(f'Inavalid: {schema_path}')
             return None, None
 
     def ft_schema(schema: dict) -> tuple|None:
@@ -112,7 +113,7 @@ class Utils:
             if value == 'tag':
                 temp = TagField(key)
                 dictlist.append(temp)
-            elif value == 'numeric':
+            elif str(value).isnumeric():
                 temp = NumericField(key)
                 dictlist.append(temp)
             else:
@@ -234,7 +235,7 @@ class Utils:
             with open(file_path, mode = 'r', encoding="utf-8", errors="backslashreplace") as csvfile:
                 return csv.Sniffer().has_header(csvfile.read(4096))
         except:
-            print('Error reading file')
+            logging.error('Error reading file')
             return None
 
     def replaceChars(text:str) -> str|None:
@@ -251,7 +252,7 @@ class Utils:
             port = cnf.settings.redis.port
             return redis.Redis(host=host, port=port, db=db)
         except:
-            print('Error: Redis connection failed.')
+            logging.error('Error: Redis connection failed.')
             return None
         
     # get item from dict by condition and concatenate values into string

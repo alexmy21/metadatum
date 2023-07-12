@@ -1,0 +1,25 @@
+{
+  "name": { "type": "string", "default": "big_idx" },
+  "namespace": { "type": "string", "default": "core_schemas" },
+  "prefix": { "type": "string", "default": "big_idx" },
+  "label": { "type": "string", "default": "BIG_IDX" },
+  "kind": { "type": "string", "default": "node" },
+
+  "keys": { "required": True, "type": "list", "default": ["name"]},
+  "version": { "type": "string", "default": "str" },
+
+  "props":
+    {
+      "required": True,
+      "type": "dict",
+      "schema":
+        {
+          "__id": { "type": "string", "required": True, "default": "str" },
+          "name": { "type": "string", "required": True, "default": "str" },
+          "bucket": { "type": "string", "required": True, "default": "str" },
+          "TF": {"type": "integer", "required": True, "default": 0 },
+          "commit_id": { "type": "string", "default": "und"},
+          "commit_status": { "type": "string", "default": "und"}
+        },
+    },
+}
