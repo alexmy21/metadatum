@@ -3,6 +3,7 @@ import importlib
 import re
 import string
 import logging
+import uuid
 
 import os
 import yaml
@@ -128,11 +129,14 @@ class Utils:
             Append values from props dictionary with keys from "keys" list
         '''
         sha = ''
-        for key in keys:
-            # Normalize strings by turning to low case
-            # and removing spaces
-            if props.get(str(key)) != None:
-                sha+= str(props.get(str(key))).lower().replace(' ', '')
+        if len(keys) == 0:
+            sha+= str(uuid.uuid1).lower().replace(' ', '')
+        else:
+            for key in keys:
+                # Normalize strings by turning to low case
+                # and removing spaces
+                if props.get(str(key)) != None:
+                    sha+= str(props.get(str(key))).lower().replace(' ', '')
 
         m = hashlib.sha1()
         m.update(sha.encode())

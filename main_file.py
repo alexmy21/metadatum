@@ -37,12 +37,15 @@ class File:
             or create index if it doesn't exist.
         '''
         reg, idx, sha_id = cmd.createUserIndex(r, b_reg, idx_file, 'main_file')
+
         cmd.parseDocument(r, 'idx_reg' + sha_id, idx_file)
 
         key_list = idx.get(voc.KEYS)
 
         # list all files with ext in directory
-        file_list = utl.listAllFiles('/home/alexmy/Downloads/POC/DATA/DEMO', '.csv')
+        file_list = utl.listAllFiles('/home/alexmy/Downloads', '.pdf')
+
+        # Process each file
         for file in file_list:
             print(file)
             dir, _file = os.path.split(os.path.abspath(file))
@@ -56,14 +59,32 @@ class File:
                 'commit_status': 'und'
             } 
             f_prefix = idx.get(voc.PREFIX)
-            f_sha_id = cmd.createRecordHash(r, f_prefix, key_list, map)
+            f_sha_id = cmd._createRecordHash(r, f_prefix, key_list, map)
 
             if cmd.parseDocument(r, utl.fullId(f_prefix, f_sha_id), file) > 0:
                 cmd.txCreate(r, 'main_file', idx.get(voc.NAMESPACE), f_sha_id, f_prefix, file, voc.WAITING)
             else:
-                print('Error parsing file')
+                print('Empty file: ', file)
                 logging.error(f"Empty file: {file}; deleting {utl.underScore(utl.fullId(f_prefix, f_sha_id))} from 'file' redisearch index")
                 r.delete(utl.underScore(utl.fullId(f_prefix, f_sha_id)))
+
+        # Commit Processed files
+        #=======================================================
+        # 1. Create commit instance in 'commit' redisearch index
+        c_sha_id, t_stamp = cmd.createCommit(r)
+
+        # 2. Commit all processed files
+        query = '(@processor_ref:main_file @status:{0})'.format(voc.WAITING)
+        while(True):
+            # redis, idx_name: str, query:str, limit: int = 100
+            keys = cmd.selectBatch(r, 'transaction', query, 25)
+            list = cmd.fldValuesFromSearchResult(keys, 'id')
+            
+            if len(list) > 0:  
+                # print('\n\n', c_sha_id, t_stamp, list)             
+                cmd.commit(r, c_sha_id, t_stamp, list)
+            else:
+                break
 
 
 if __name__ == '__main__':

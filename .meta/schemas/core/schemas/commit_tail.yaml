@@ -5,29 +5,33 @@
   "label": { "type": "string", "default": "COMMIT_TAIL" },
   "kind": { "type": "string", "default": "node" },
 
+  # This is the list of keys that will be used to create the index
+  # if list is empty then uuid would be used to create SHA1 hashs
   "keys":
     {
       "type": "list",
       "required": True,
-      "default": ["commit_id", "label", "name", "idx-name", "idx-prefix"],
+      "default": [],
     },
   "version": { "type": "string", "default": "str" },
 
-  "props": { "required": True, "type": "dict", "schema": {
+  "props": 
+    { 
+        "required": True, 
+        "type": "dict", 
+        "schema": {
+          # This is tail id for the commit_tail instance it should be UUID
+          # We cannot use id based on
           "__id": { "type": "string", "default": "str" },
+          # This is the head id (normalized original id) for the commit_tail instance
+          "item_id": { "type": "string", "default": "str" },
           # Reference to commit
           "commit_id": { "type": "string", "default": "str" },
-          "label": { "type": "string", "default": "str" },
-          "name": { "type": "string", "required": True, "default": "str" },
-          # Timestamt of submission to the tail
-          "timestamp": { "type": "string", "default": "" },
-          "idx-name": { "type": "string", "required": True, "default": "str" },
-          "idx_prefix":
-            { "type": "string", "required": True, "default": "str" },
-          "yaml": { "type": "string", "required": True, "default": "str" },
-          "status": { "type": "string", "default": "str" },
-          "doc": { "type": "string", "default": "str" },
-          "commit_id": { "type": "string", "default": "und"},
-          "commit_status": { "type": "string", "default": "und"}
-        } },
+          # Timestamp of the commit 
+          "timestamp": { "type": "string", "default": " " },
+          "commit_status": { "type": "string", "default": "und"},
+          # optional extra docs
+          "doc": { "type": "string", "default": " " }
+        } 
+    },
 }

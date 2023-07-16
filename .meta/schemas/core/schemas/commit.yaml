@@ -9,25 +9,23 @@
     {
       "required": True,
       "type": "list",
-      "default": ["commit_id", "label", "name", "timestamt"],
+      "default": ["timestamp", "committer_name", "committer_email"],
     },
-  "version": { "type": "string", "default": "str" },
+  "version": { "type": "string", "default": "0.1.0" },
 
-  "props": { "required": True, "type": "dict", "schema": {
+  "props": 
+    { 
+      "required": True, 
+      "type": "dict", 
+      "schema": 
+        {
           "__id": { "type": "string", "default": "str" },
-          # Time based UUID to sort commits by
-          "commit_id": { "type": "string", "default": "str" },
-          "label": { "type": "string", "default": "str" },
-          "name": { "type": "string", "default": "str" },
           "timestamp": { "type": "string", "default": "str" },
-          # Reference to the index of the committed item
-          "idx-name": { "type": "string", "required": True, "default": "str" },
-          "idx_prefix":
-            { "type": "string", "required": True, "default": "str" },
           "committer_name": { "type": "string", "default": "str" },
           "committer_email": { "type": "string", "default": "str" },
           "doc": { "type": "string", "default": "str" },
           "commit_id": { "type": "string", "default": "und"},
           "commit_status": { "type": "string", "default": "und"}
-        } },
+        } 
+    },
 }

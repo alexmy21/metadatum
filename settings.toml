@@ -9,3 +9,8 @@
 
 [scripts]
     dir_scripts = "scripts"
+
+[commit]
+    committer_name = "Alex Mylnikov"
+    committer_email = "alexmy@lisa-park.com"
+    

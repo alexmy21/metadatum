@@ -2,6 +2,8 @@ import os
 import re
 # import string
 import logging
+import string
+import time
 
 import redis
 from redis.commands.graph import Graph, Node, Edge
@@ -174,12 +176,12 @@ class Commands:
         idx = self.createIndex(redis, schema_file)
         sha_id = self.createIndexHash(redis, reg, idx, schema_file)
         # redis, proc_ref:str, namespace:str, item_id:str, item_prefix:str, url:str, status: str
-        _hash = self.txCreate(redis, proc_name, reg.get(voc.NAMESPACE), sha_id, reg.get(voc.PREFIX), schema_file, voc.COMPLETE)
+        _hash = self.txCreate(redis, proc_name, idx.get(voc.NAMESPACE), sha_id, reg.get(voc.PREFIX), schema_file, voc.COMPLETE)
 
         return reg, idx, sha_id
     
     # Create record hash
-    def createRecordHash(self, redis, prefix: str, key_list: list, props:dict) -> str|None:
+    def _createRecordHash(self, redis, prefix: str, key_list: list, props:dict) -> str|None:
         '''
             Create hash record in Redis, hash key is sha1 of the list of keys
             from the index schema. Prefix is underscored to indicate that this
@@ -193,6 +195,21 @@ class Commands:
         props[voc.ID] = sha_id
 
         full_id = utl.fullId(_pref, sha_id)
+        redis.hset(full_id, mapping = props)
+
+        return sha_id
+    
+    def createRecordHash(self, redis, prefix: str, key_list: list, props:dict) -> str|None:
+        '''
+            Create hash record in Redis, hash key is sha1 of the list of keys
+            from the index schema. This record is not going to transaction 
+            so prefix is not underscored.
+        '''
+        sha_id = utl.sha1(key_list, props)
+        # add item ID (__id) to props
+        props[voc.ID] = sha_id
+
+        full_id = utl.fullId(prefix, sha_id)
         redis.hset(full_id, mapping = props)
 
         return sha_id
@@ -289,9 +306,20 @@ class Commands:
     '''
         Select batch of records (list of full_id's) from TRANSACTION index for processing
     '''
-    def selectBatch(self, redis, idx_name: str, query:str, limit: int = 10) -> dict|None:
+    def selectBatch(self, redis, idx_name: str, query:str, limit: int = 10):
         _query = Query(query).no_content().paging(0, limit)
         return redis.ft(idx_name).search(_query)
+    
+    # extract field value from search result
+    def fldValuesFromSearchResult(self, result, field: str) -> list|None:
+        if result == None:
+            return None
+        else:
+            list = []
+            for doc in result.docs:
+                list.append(doc[field])
+
+            return list
 
     '''
         Tokenizes provided file, updates BIG_IDX, and Creates HLL in Redis for the document
@@ -310,7 +338,7 @@ class Commands:
             text = utl.getSchemaFromFile(file_name) 
         else:
             try:
-                text = textract.process(file_name)
+                text = textract.process(file_name, encoding='utf-8')
             except:
                 logging.error('Cannot process file: ' + file_name)
                 return 0
@@ -328,9 +356,9 @@ class Commands:
         _digits = re.compile('\d')
         for word in tokens:
             if isinstance(word, bytes):
-                word = re.sub("[\n\t\.:;\,'\"]", " ", str(word.decode()).lower())
+                word = re.sub("[\n\t\.:;\,'\"\[\]\{\}]", " ", str(word.decode()).lower())
             else:
-                word = re.sub("[\n\t\.:;\,'\"]", " ", str(word).lower())
+                word = re.sub("[\n\t\.:;\,'\"\[\]\{\}]", " ", str(word).lower())
 
             for w in word.split():
             # set(nltk.word_tokenize(word)):
@@ -352,6 +380,31 @@ class Commands:
         
         return count
     
+    # Create commit
+    def createCommit(self, redis) -> str|None:
+        t_stamp = time.time()
+        c_map: dict = {
+            'timestamp': t_stamp,
+            'committer_name': cnf.settings.commit.committer_name,
+            'committer_email': cnf.settings.commit.committer_email,
+            'doc:': ' ',
+            'commit_id': 'und',
+            'commit_status': 'und'
+        }
+        c_prefix = voc.COMMIT
+        c_key_list = [voc.TIMESTAMP, voc.COMMITTER_NAME, voc.COMMITTER_EMAIL]
+        sha1_id = self.createRecordHash(redis, c_prefix, c_key_list, c_map)
+
+        return sha1_id, t_stamp
+
+    # commit transaction
+    def commit(self, redis, commit_id:str, timestamp:str, tx_keys:list) -> int|None:
+        function = "commit"
+        keys = [commit_id, timestamp]
+        keys.extend(tx_keys)
+
+        return redis.fcall(function, 2, *keys)
+        
     # convert list to set
     def listToSet(self, redis, list_name, list) -> int|None:
         return redis.sadd(list_name, *list)

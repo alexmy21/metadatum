@@ -43,6 +43,23 @@ class Bootstrap:
             reg, idx, sha_id = cmd.createUserIndex(r, reg, schema_file, 'bootstrap')
             logging.debug(cmd.parseDocument(r, reg.get(voc.PREFIX) + sha_id, schema_file))
 
+        # Commit Processed indices
+        #=======================================================
+        # 1. Create commit instance in 'commit' redisearch index
+        c_sha_id, t_stamp = cmd.createCommit(r)
+
+        # 2. Commit all processed files
+        query = '(@processor_ref:bootstrap @status:{0})'.format(voc.COMPLETE)
+        while(True):
+            # redis, idx_name: str, query:str, limit: int = 100
+            keys = cmd.selectBatch(r, 'transaction', query, 25)
+            list = cmd.fldValuesFromSearchResult(keys, 'id')
+            
+            if len(list) > 0:  
+                # print('\n\n', c_sha_id, t_stamp, list)             
+                cmd.commit(r, c_sha_id, t_stamp, list)
+            else:
+                break
 
         return reg, idx, sha_id
 
