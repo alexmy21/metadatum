@@ -18,6 +18,8 @@ from metadatum.vocabulary import Vocabulary as voc
 import sys
 import inspect
 
+from dataclasses import dataclass, field
+
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir) 
@@ -38,9 +40,23 @@ class Utils:
         sys.path.insert(0, parentdir)
         # import config 
 
+    def runModuleByName(module_name: str, package: str, class_name: str, *args, **kwargs):
+        try:
+            module = importlib.import_module(module_name, package=package)
+            class_ = getattr(module, class_name)
+            instance = class_(*args, **kwargs)
+            return instance.run()
+        except ImportError as err:
+            logging.error(f'Error: {err}')
+            return None
+
+    # Import module from package
     def importModule(module: str, package: str):
         try:
-            return importlib.import_module(module, package=package) 
+            if package == None or len(package) == 0:
+                return importlib.import_module(module, '.')
+            else:
+                return importlib.import_module(module, package=package) 
         except ImportError as err:
             logging.error(f'Error: {err}')
             return None
@@ -88,24 +104,19 @@ class Utils:
         v.schema = Utils.getSchemaFromFile(schema_path)
 
         return v.normalized(Utils.doc_0)
-
-        # if v.validate(schema, Utils.doc_0):
-        #     return v.normalized(Utils.doc_0)
-        # else:
-        #     print('Inavalid: {}'.format(schema_path))
-        #     return None
     
     def getProps(doc, schema_path):        
         v = Validator()
-        # schema = Utils.getSchemaFromFile(schema_path)
+        
         p_dict: dict = {}
         if v.validate(Utils.doc_0, doc):
             n_doc = v.normalized(Utils.doc_0, doc)
-            p_dict = n_doc.get('props').items() 
+            p_dict = n_doc.get(voc.PROPS).items() 
             return p_dict, n_doc
         else:
             logging.debug(f'Inavalid: {schema_path}')
             return None, None
+    
 
     def ft_schema(schema: dict) -> tuple|None:
         dictlist = []
@@ -150,7 +161,6 @@ class Utils:
         m = hashlib.sha1()
         m.update(string.lower().replace(' ', '').encode())
         return m.hexdigest()
-
    
     #    Entity ID manipulation support 
     '''
@@ -218,10 +228,12 @@ class Utils:
         else:
             return None
 
-
     '''
         Misc methods
     '''
+    def flat2dList(list: list) -> list:
+        return [item for sublist in list for item in sublist]
+    
     def prefix(term: str) -> str:
         if term.endswith(':'):
             return term
@@ -242,9 +254,9 @@ class Utils:
             logging.error('Error reading file')
             return None
 
-    def replaceChars(text:str) -> str|None:
+    def replaceChars(text:str, replacement:str) -> str|None:
         chars = re.escape(string.punctuation)
-        return re.sub(r'['+chars+']', '', text)
+        return re.sub(r'['+chars+']', replacement, text)
 
     def quotes(text: str) -> str:
         return "\'" + text + "\'"

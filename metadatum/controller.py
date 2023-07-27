@@ -2,12 +2,24 @@ import os
 import redis
 import logging
 
-import utils as utl
-from vocabulary import Vocabulary as voc
-from commands import Commands
+from metadatum.utils import Utils as utl
+from metadatum.vocabulary import Vocabulary as voc
+from metadatum.commands import Commands 
+from metadatum.bootstrap import Bootstrap
+
+
+utl.importConfig()
+import config as cnf
 
 class Controller:    
-    def __init__(self, path:str, data:dict, redis_host:str, redis_port:int):
+    def __init__(self, path:str, data:dict):
+        '''
+            Bootstrap ensures that the registry index and all core indices exist.
+            boot() command is idempotent. It will create indices if they don't exist.
+        '''
+        boot = Bootstrap()
+        boot.boot()
+
         self.path = path
         self.data = data
         self.package = self.data.get(voc.PACKAGE)
@@ -16,18 +28,15 @@ class Controller:
         self.schema_dir = self.data.get(voc.SCHEMA_DIR)
         self.props = self.data.get(voc.PROPS)
 
-        self.uri = os.path.normpath(os.path.join(self.path, self.package, self.name))        
-        module = '.' + self.schema
-        self.processor = utl.importModule(module, self.package) 
-        self.rs = utl.getRedis(redis_host, redis_port)
+        print('\n\nContr_props_1: ===> ', self.props)
 
-        ''' 
-            Update processor index
-        '''
-        cmd = Commands(self.rs)
-        schema_path = os.path.join(self.schema_dir, self.schema + '.yaml')
-        # logging.debug(f'Controller: {path}')
-        cmd.updateRecord(self.schema, schema_path, self.props, True)
+        self.keys = self.data.get(voc.KEYS) 
+        self.processor = utl.importModule(self.schema, self.package) 
+
+        # dir = cnf.settings.dot_meta
+        pool = redis.ConnectionPool(host=cnf.settings.redis.host, port = cnf.settings.redis.port, db = 0)
+        self.rs = redis.Redis(connection_pool = pool)
+        
 
     def run(self) -> dict|str|None:
         _data = {}
@@ -36,7 +45,7 @@ class Controller:
         match _case:
             case 'SOURCE':
                 print('SOURCE')
-                _data: dict = Controller(self.path, self.data).source()
+                _data: dict = self.source()
             case 'TRANSFORM':
                 print('TRANSFORM')
                 _data: dict = Controller(self.path, self.data).process(voc.WAITING)
@@ -50,23 +59,33 @@ class Controller:
             case _:
                 print('default case')
 
+        ''' 
+            Update processor index
+            Each processor has its own index to record each run of the processor.
+        '''
+        cmd = Commands()
+        cmd.updateRecordHash(self.rs, prefix=self.schema, key_list=self.keys, props=self.props)
+
+        # Submit processing results
+        cmd.submit(self.rs, self.schema, voc.COMPLETE, 25)
+
         return _data
 
     def source(self) -> dict|None:
-        _data:dict = self.processor.run(self.data.get(voc.PROPS))
+        print('\n\nContr_props_2: ===> ', self.props)
+        _data:dict = self.processor.run(self.props)
         return _data
     
     def process(self, status: str) -> dict|None:
-        rs = utl.getRedis(Client().config_props) 
         _data:dict = self.data.get(voc.PROPS)
-        resources = cmd.selectBatch(rs, voc.TRANSACTION, _data.get(voc.QUERY), _data.get(voc.LIMIT))
+        resources = self.cmd.selectBatch(self.rs, voc.TRANSACTION, _data.get(voc.QUERY), _data.get(voc.LIMIT))
         ret = {}                    
         try:            
             for doc in resources.docs:
                 # print('in for loop')
                 processed = self.processor.run(doc, _data.get('duckdb_name'))                
                 ret.update(processed)
-                cmd.txStatus(rs, self.schema, self.schema, doc.id, status) 
+                self.cmd.txStatus(self.rs, self.schema, self.schema, doc.id, status) 
         except:
             ret = {'error', 'There is no data to process.'}
 

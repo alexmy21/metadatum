@@ -93,12 +93,8 @@ class Commands:
         ok = False
         try:
             index_name = n_doc.get(voc.NAME)
-            print('\nINDEX_NAME: ==> ', index_name)
-            print('\nP_DICT: ==> ', p_dict)
             # Create index
             schema = utl.ft_schema(p_dict)
-
-            print('\nSCHEMA: ==> ', schema)
 
             redis.ft(index_name).create_index(schema, definition=IndexDefinition(prefix=[utl.prefix(index_name)]))
             ok = True
@@ -123,7 +119,7 @@ class Commands:
         map: dict = {
             voc.NAME: idx.get(voc.NAME),
             voc.NAMESPACE: idx.get(voc.NAMESPACE),
-            voc.ITEM_PREFIX: voc.IDX_REG,
+            voc.ITEM_PREFIX: 'registry',
             voc.LABEL: reg.get(voc.LABEL),
             voc.KIND: reg.get(voc.KIND),
             voc.COMMIT_ID: reg.get(voc.PROPS).get(voc.COMMIT_ID),
@@ -138,7 +134,7 @@ class Commands:
             record is not a part of the index yet. It would be added to the index
             after commiting transaction.
         '''
-        _pref = utl.underScore(voc.IDX_REG)
+        _pref = utl.underScore('registry')
         k_list: dict = reg.get(voc.KEYS)
 
         sha_id = utl.sha1(k_list, map)
@@ -169,7 +165,7 @@ class Commands:
         sha_id = self.createIndexHash(redis, reg, idx, idx_reg_file)
         hash = self.txCreate(redis, proc_name, reg.get(voc.NAMESPACE), sha_id, reg.get(voc.PREFIX), idx_reg_file, voc.COMPLETE)
 
-        return reg, idx, sha_id
+        return reg, sha_id
 
     # Create user defined index from .yaml file
     def createUserIndex(self, redis, reg:dict, schema_file, proc_name) -> dict|None:
@@ -181,7 +177,7 @@ class Commands:
         return reg, idx, sha_id
     
     # Create record hash
-    def _createRecordHash(self, redis, prefix: str, key_list: list, props:dict) -> str|None:
+    def _updateRecordHash(self, redis, prefix: str, key_list: list, props:dict) -> str|None:
         '''
             Create hash record in Redis, hash key is sha1 of the list of keys
             from the index schema. Prefix is underscored to indicate that this
@@ -199,7 +195,7 @@ class Commands:
 
         return sha_id
     
-    def createRecordHash(self, redis, prefix: str, key_list: list, props:dict) -> str|None:
+    def updateRecordHash(self, redis, prefix: str, key_list: list, props:dict) -> str|None:
         '''
             Create hash record in Redis, hash key is sha1 of the list of keys
             from the index schema. This record is not going to transaction 
@@ -311,13 +307,13 @@ class Commands:
         return redis.ft(idx_name).search(_query)
     
     # extract field value from search result
-    def fldValuesFromSearchResult(self, result, field: str) -> list|None:
-        if result == None:
+    def docIdList(self, result) -> list|None:
+        if result.docs == None or len(result.docs) == 0:
             return None
         else:
             list = []
             for doc in result.docs:
-                list.append(doc[field])
+                list.append(doc.id)
 
             return list
 
@@ -374,9 +370,9 @@ class Commands:
             keys.extend(t_list[i:i + batch])            
             redis.fcall(function, 2, *keys)
 
-        hll_id = utl.underScore(utl.fullId(voc.HLL, utl.getIdShaPart(norm_id)))
-        count = redis.pfcount(hll_id) 
-        print(hll_id, ': ', count)  
+        _hll_id = utl.underScore(utl.fullId(voc.HLL, utl.getIdShaPart(norm_id)))
+        count = redis.pfcount(_hll_id) 
+        print(_hll_id, ': ', count)  
         
         return count
     
@@ -393,7 +389,7 @@ class Commands:
         }
         c_prefix = voc.COMMIT
         c_key_list = [voc.TIMESTAMP, voc.COMMITTER_NAME, voc.COMMITTER_EMAIL]
-        sha1_id = self.createRecordHash(redis, c_prefix, c_key_list, c_map)
+        sha1_id = self.updateRecordHash(redis, c_prefix, c_key_list, c_map)
 
         return sha1_id, t_stamp
 
@@ -404,6 +400,31 @@ class Commands:
         keys.extend(tx_keys)
 
         return redis.fcall(function, 2, *keys)
+    
+    def submit(self, redis, proc:str, status:str, limit:int) -> int|None:
+        # Commit Processed indices
+        #=======================================================
+        # 1. Create commit instance in 'commit' redisearch index
+        c_sha_id, t_stamp = self.createCommit(redis)
+
+        # 2. Commit all processed files 
+        query = f'(@processor_ref:{proc} @status:{status})'       
+        committed = False
+        while(True):
+            # redis, idx_name: str, query:str, limit: int = 100
+            keys = self.selectBatch(redis, 'transaction', query, limit)
+            list = self.docIdList(keys)            
+            if list != None and len(list) > 0:  
+                # commit command returns True if some documents were committed
+                committed = committed or self.commit(redis, c_sha_id, t_stamp, list)
+            else:
+                break
+        
+        if not committed:
+            # Remove empty commit from commit index
+            logging.error(f"Empty commit: {c_sha_id} {t_stamp}")
+            redis.delete(utl.fullId('commit', c_sha_id))
+
         
     # convert list to set
     def listToSet(self, redis, list_name, list) -> int|None:

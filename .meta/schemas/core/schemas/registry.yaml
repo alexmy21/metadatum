@@ -1,8 +1,8 @@
 {
-  "name": { "type": "string", "default": "idx_reg" },
+  "name": { "type": "string", "default": "registry" },
   "namespace": { "type": "string", "default": "core_schemas" },
-  "prefix": { "type": "string", "default": "idx_reg" },
-  "label": { "type": "string", "default": "IDX_REG" },
+  "prefix": { "type": "string", "default": "registry" },
+  "label": { "type": "string", "default": "REGISTRY" },
   "kind": { "type": "string", "default": "node" },
 
   "keys":

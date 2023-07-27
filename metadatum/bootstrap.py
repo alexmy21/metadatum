@@ -18,13 +18,12 @@ class Bootstrap:
         cmd = Commands()
 
         dir = cnf.settings.dot_meta
-        idx_reg_file = os.path.join(dir, cnf.settings.indices.idx_reg_file)
+        registry = os.path.join(dir, cnf.settings.indices.registry)
         # logging.debug(f"idx_reg.yaml path {idx_reg_file}")
 
-        reg, idx, sha_id = cmd.createRegistryIndex(r, idx_reg_file, 'bootstrap')
+        reg, sha_id = cmd.createRegistryIndex(r, registry, 'bootstrap')
 
         dir_core = os.path.join(dir, cnf.settings.indices.dir_core)
-
 
         # load all libraries
         dir_func = os.path.join(dir, cnf.settings.scripts.dir_scripts)
@@ -34,32 +33,15 @@ class Bootstrap:
             logging.debug(lib_file)
             cmd.loadLib(r, lib_file, True)
 
-
         # list all files with ext in directory
         file_list = utl.listAllFiles(dir_core, '.yaml')
-
         for schema_file in file_list:
             logging.debug(schema_file)
             reg, idx, sha_id = cmd.createUserIndex(r, reg, schema_file, 'bootstrap')
             logging.debug(cmd.parseDocument(r, reg.get(voc.PREFIX) + sha_id, schema_file))
 
-        # Commit Processed indices
-        #=======================================================
-        # 1. Create commit instance in 'commit' redisearch index
-        c_sha_id, t_stamp = cmd.createCommit(r)
-
-        # 2. Commit all processed files
-        query = '(@processor_ref:bootstrap @status:{0})'.format(voc.COMPLETE)
-        while(True):
-            # redis, idx_name: str, query:str, limit: int = 100
-            keys = cmd.selectBatch(r, 'transaction', query, 25)
-            list = cmd.fldValuesFromSearchResult(keys, 'id')
-            
-            if len(list) > 0:  
-                # print('\n\n', c_sha_id, t_stamp, list)             
-                cmd.commit(r, c_sha_id, t_stamp, list)
-            else:
-                break
+        # Submit processing results
+        cmd.submit(r, 'bootstrap', voc.COMPLETE, 25)
 
         return reg, idx, sha_id
 

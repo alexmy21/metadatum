@@ -1,10 +1,11 @@
 import os
 import logging
-logging.basicConfig(filename='main_file.log', encoding='utf-8', level=logging.DEBUG)
+logging.basicConfig(filename='file_proc.log', encoding='utf-8', level=logging.DEBUG)
 
 import time
 import redis
 from redis.commands.graph import Graph, Node, Edge
+from pathlib import Path
 
 from metadatum.commands import Commands
 from metadatum.utils import Utils as utl
@@ -14,9 +15,12 @@ from metadatum.bootstrap import Bootstrap
 utl.importConfig()
 import config as cnf
 
-class File: 
+# class File: 
 
-    def run(self):
+def run(props: dict = None):
+        
+        print('props: ===> ', props)
+              
         '''
             Bootstrap ensures that the registry index and all core indices exist.
             boot() command is idempotent. It will create indices if they don't exist.
@@ -36,60 +40,39 @@ class File:
             createUserIndex command is idempotent. We can run it to get latest version of the index schema
             or create index if it doesn't exist.
         '''
-        reg, idx, sha_id = cmd.createUserIndex(r, b_reg, idx_file, 'main_file')
+        reg, idx, sha_id = cmd.createUserIndex(r, b_reg, idx_file, 'file_proc')
 
-        cmd.parseDocument(r, 'idx_reg' + sha_id, idx_file)
+        cmd.parseDocument(r, 'registry' + sha_id, idx_file)
 
         key_list = idx.get(voc.KEYS)
 
         # list all files with ext in directory
-        file_list = utl.listAllFiles('/home/alexmy/Downloads', '.pdf')
+        file_list = utl.listAllFiles(props.get('dir'), props.get('file_type'))
 
         # Process each file
         for file in file_list:
             print(file)
             dir, _file = os.path.split(os.path.abspath(file))
+            # extract file extention from file name
+            ext = Path(file).suffix
+
             map: dict = {
                 'parent_id': dir,
                 'url': _file,
-                'file_type': 'csv',
+                'file_type': ext,
                 'size': os.path.getsize(file),
                 'doc:': ' ',
                 'commit_id': 'und',
                 'commit_status': 'und'
             } 
             f_prefix = idx.get(voc.PREFIX)
-            f_sha_id = cmd._createRecordHash(r, f_prefix, key_list, map)
+            f_sha_id = cmd._updateRecordHash(r, f_prefix, key_list, map)
 
             if cmd.parseDocument(r, utl.fullId(f_prefix, f_sha_id), file) > 0:
-                cmd.txCreate(r, 'main_file', idx.get(voc.NAMESPACE), f_sha_id, f_prefix, file, voc.WAITING)
+                cmd.txCreate(r, 'file_proc', idx.get(voc.NAMESPACE), f_sha_id, f_prefix, file, voc.COMPLETE)
             else:
                 print('Empty file: ', file)
                 logging.error(f"Empty file: {file}; deleting {utl.underScore(utl.fullId(f_prefix, f_sha_id))} from 'file' redisearch index")
                 r.delete(utl.underScore(utl.fullId(f_prefix, f_sha_id)))
 
-        # Commit Processed files
-        #=======================================================
-        # 1. Create commit instance in 'commit' redisearch index
-        c_sha_id, t_stamp = cmd.createCommit(r)
-
-        # 2. Commit all processed files
-        query = '(@processor_ref:main_file @status:{0})'.format(voc.WAITING)
-        while(True):
-            # redis, idx_name: str, query:str, limit: int = 100
-            keys = cmd.selectBatch(r, 'transaction', query, 25)
-            list = cmd.fldValuesFromSearchResult(keys, 'id')
-            
-            if len(list) > 0:  
-                # print('\n\n', c_sha_id, t_stamp, list)             
-                cmd.commit(r, c_sha_id, t_stamp, list)
-            else:
-                break
-
-
-if __name__ == '__main__':
-    time_start = time.perf_counter()
-    file = File()
-    file.run()
-    time_end = time.perf_counter()
-    print(f"Elapsed time: {time_end - time_start:0.4f} seconds")
+        return props

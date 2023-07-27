@@ -15,7 +15,7 @@ local function check_keys(keys, num_key)
     return nil
 end
 
-local function areHllEqual(hll1, hll2)
+local function PFEQUAL(hll1, hll2)
   local hll1_size = redis.call('PFCOUNT', hll1)
   local hll2_size = redis.call('PFCOUNT', hll2)
   if hll1_size ~= hll2_size then
@@ -23,7 +23,11 @@ local function areHllEqual(hll1, hll2)
   end
 
   local hll1_union = redis.call('PFMERGE', 'hll1_union', hll1, hll2)
-  local hll1_union_size = redis.call('PFCOUNT', hll1_union)
+  local hll1_union_size = redis.call('PFCOUNT', 'hll1_union')
+
+  -- Clean temporary HLL union key
+  redis.call('DEL', 'hll1_union')
+
   if hll1_union_size ~= hll1_size then
     return false
   end
@@ -85,22 +89,24 @@ local function commit(keys, args)
       return error
     end
 
-    local original = 'original'
-    local updated = 'updated'
-    local deleted = 'deleted'
+    local original  = 'original'
+    local updated   = 'updated'
+    local deleted   = 'deleted'
     
     local commit_id = keys[1]
-    local timestamp = keys[3]
+    local timestamp = keys[2]
+
+    local committed = false
 
     for i= 1, #args do
         local item_id = redis.call('HGET', args[i], 'item_id')
         local item_prefix = redis.call('HGET', args[i], 'item_prefix')
-        -- The processing item is still with underscored prefix
-        local _item_key = '_' .. item_prefix .. ':' .. item_id
         local item_key = item_prefix .. ':' .. item_id
+        -- The processing item is still with underscored prefix
+        local _item_key = '_' .. item_key
         
-        local _hll_id = '_hll:' .. item_id
         local hll_id = 'hll:' .. item_id
+        local _hll_id = '_' .. hll_id
 
         if redis.call('PFCOUNT', _hll_id) == 0 then
           -- if new item is empty 
@@ -109,14 +115,16 @@ local function commit(keys, args)
           redis.call('DEL', _hll_id)
         
         elseif redis.call('PFCOUNT', hll_id) == 0 then
-          --  commit status ('original', 'updated', 'deleted')
-          redis.call('HSET', _item_key, 'commit_id', commit_id)
-          redis.call('HSET', _item_key, 'commit_status', original)
           -- We have a new item and HLL. Rename them to the final names
           redis.call('RENAME', _hll_id, hll_id)
           redis.call('RENAME', _item_key, item_key)
+          --  commit status ('original', 'updated', 'deleted')
+          redis.call('HSET', item_key, 'commit_id', commit_id)
+          redis.call('HSET', item_key, 'commit_status', original)
 
-        elseif areHllEqual(hll_id, _hll_id) then
+          committed = true
+
+        elseif PFEQUAL(hll_id, _hll_id) then
           -- if new and old items are equal 
           -- Make no action just remove temporary keys from Redis
           -- !!! This condition may be contested !!!
@@ -133,22 +141,24 @@ local function commit(keys, args)
           local t_commit_id = redis.call('HGET', item_key, 'commit_id')
           local t_commit_status = redis.call('HGET', item_key, 'commit_status')
 
-          local tail = {}
-          table.insert(tail, '__id')
-          table.insert(tail, tail_id)
-          table.insert(tail, 'item_id')
-          table.insert(tail, item_id)
-          table.insert(tail, 'commit_id')
-          table.insert(tail, t_commit_id)
-          table.insert(tail, 'timestamp')
-          table.insert(tail, timestamp)
-          table.insert(tail, 'commit_status')
-          table.insert(tail, t_commit_status)
+          local t_item = {}
+          table.insert(t_item, '__id')
+          table.insert(t_item, tail_id)
+          table.insert(t_item, 'item_id')
+          table.insert(t_item, item_id)
+          table.insert(t_item, 'item_prefix')
+          table.insert(t_item, item_prefix)
+          table.insert(t_item, 'commit_id')
+          table.insert(t_item, t_commit_id)
+          table.insert(t_item, 'timestamp')
+          table.insert(t_item, timestamp)
+          table.insert(t_item, 'commit_status')
+          table.insert(t_item, t_commit_status)
 
-          redis.call('HSET', tail_key, unpack(tail))
+          redis.call('HSET', tail_key, unpack(t_item))
           -- Move current item and HLL to the commit_tail index by renaming to final names
-          redis.call('RENAME', hll_id, '_hll:' .. tail_id)
-          redis.call('RENAME', item_id, item_prefix .. ':' .. tail_id)
+          redis.call('RENAME', hll_id, 'hll:' .. tail_id)
+          redis.call('RENAME', item_key, item_prefix .. ':' .. tail_id)
           
           --  commit status ('original', 'updated', 'deleted')
           redis.call('HSET', _item_key, 'commit_id', commit_id)
@@ -157,11 +167,15 @@ local function commit(keys, args)
           -- Make them current by renaming them to the final names
           redis.call('RENAME', _hll_id, hll_id)
           redis.call('RENAME', _item_key, item_key)
+
+          committed = true
         end
 
         -- Clean transaction index
         redis.call('DEL', args[i])
     end
+
+    return committed
 
 end
 

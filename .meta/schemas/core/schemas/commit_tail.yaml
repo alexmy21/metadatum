@@ -23,6 +23,7 @@
           # This is tail id for the commit_tail instance it should be UUID
           # We cannot use id based on
           "__id": { "type": "string", "default": "str" },
+          "item_prefix": { "type": "string", "default": "str" },
           # This is the head id (normalized original id) for the commit_tail instance
           "item_id": { "type": "string", "default": "str" },
           # Reference to commit

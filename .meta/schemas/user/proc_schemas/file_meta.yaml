@@ -1,8 +1,8 @@
 {
+  "label": { "type": "string", "default": "SOURCE" },
+  "name": { "type": "string", "default": "file_meta.py" },
   "namespace": { "type": "string", "default": "user_proc_schemas" },
-  "name": { "type": "string", "default": "file_proc" },
-  "prefix": { "type": "string", "default": "file_proc" },
-  "label": { "type": "string", "default": "PROCESSOR" },
+  "prefix": { "type": "string", "default": "file_meta" },
   "kind": { "type": "string", "default": "node" },
 
   "keys":
@@ -21,12 +21,9 @@
         {
           "__id": { "type": "string", "default": "str" },
           "version": { "type": "string", "default": "0.1.0" },
-          "package": { "type": "string", "default": "metadatum_app" },
+          "package": { "type": "string", "default": "." },
           "language": { "type": "string", "default": "python" },
-
-          "url": { "type": "string", "default": "str" },
-          "commit_id": { "type": "string", "default": "und"},
-          "commit_status": { "type": "string", "default": "und"}
+          "url": { "type": "string", "default": "str" }
         },
     },
 }
