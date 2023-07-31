@@ -1,1 +1,17 @@
 numpy
+anyio
+async-timeout
+Cerberus
+click
+h11
+idna
+numpy
+polars
+PyYAML
+redis
+sniffio
+starlette
+uvicorn
+cymple
+dynaconf
+textract

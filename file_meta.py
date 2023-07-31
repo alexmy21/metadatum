@@ -1,6 +1,6 @@
 import os
 import logging
-logging.basicConfig(filename='file_proc.log', encoding='utf-8', level=logging.DEBUG)
+logging.basicConfig(filename='file_meta.log', encoding='utf-8', level=logging.DEBUG)
 
 import time
 import redis
@@ -15,12 +15,8 @@ from metadatum.bootstrap import Bootstrap
 utl.importConfig()
 import config as cnf
 
-# class File: 
-
-def run(props: dict = None):
-        
-        print('props: ===> ', props)
-              
+def run(props: dict = None):        
+        print('props: ===> ', props)              
         '''
             Bootstrap ensures that the registry index and all core indices exist.
             boot() command is idempotent. It will create indices if they don't exist.
@@ -33,14 +29,12 @@ def run(props: dict = None):
         r = redis.Redis(connection_pool = pool)
 
         cmd = Commands()
-
         idx_file = os.path.join(dir, cnf.settings.indices.dir_user, 'schemas/file.yaml')
-
         '''
             createUserIndex command is idempotent. We can run it to get latest version of the index schema
             or create index if it doesn't exist.
         '''
-        reg, idx, sha_id = cmd.createUserIndex(r, b_reg, idx_file, 'file_proc')
+        reg, idx, sha_id = cmd.createUserIndex(r, b_reg, idx_file, 'file_meta')
 
         cmd.parseDocument(r, 'registry' + sha_id, idx_file)
 
@@ -48,14 +42,12 @@ def run(props: dict = None):
 
         # list all files with ext in directory
         file_list = utl.listAllFiles(props.get('dir'), props.get('file_type'))
-
         # Process each file
         for file in file_list:
             print(file)
             dir, _file = os.path.split(os.path.abspath(file))
             # extract file extention from file name
             ext = Path(file).suffix
-
             map: dict = {
                 'parent_id': dir,
                 'url': _file,
@@ -66,13 +58,7 @@ def run(props: dict = None):
                 'commit_status': 'und'
             } 
             f_prefix = idx.get(voc.PREFIX)
-            f_sha_id = cmd._updateRecordHash(r, f_prefix, key_list, map)
-
-            if cmd.parseDocument(r, utl.fullId(f_prefix, f_sha_id), file) > 0:
-                cmd.txCreate(r, 'file_proc', idx.get(voc.NAMESPACE), f_sha_id, f_prefix, file, voc.COMPLETE)
-            else:
-                print('Empty file: ', file)
-                logging.error(f"Empty file: {file}; deleting {utl.underScore(utl.fullId(f_prefix, f_sha_id))} from 'file' redisearch index")
-                r.delete(utl.underScore(utl.fullId(f_prefix, f_sha_id)))
+            f_sha_id = cmd._updateRecordHash(r, f_prefix, key_list, map) 
+            cmd.txCreate(r, 'file_meta', idx.get(voc.NAMESPACE), f_sha_id, f_prefix, file, voc.WAITING)           
 
         return props

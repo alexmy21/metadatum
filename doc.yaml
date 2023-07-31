@@ -1,1 +1,0 @@
-{'props': {'__id': 'str', 'meta_env': 'str', 'idx_reg_dir': 'core_schemas', 'doc': 'str'}, 'label': 'BOOTSTRAP', 'name': 'bootstrap.py', 'version': 'str', 'package': 'core', 'language': 'python', 'schema_dir': '/home/alexmy/PYTHON/redis-meta-engine/.meta/processors', 'schema': 'bootstrap', 'kind': 'processor', 'keys': ['meta_env', 'idx_reg_url']}
