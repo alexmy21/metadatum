@@ -1,0 +1,33 @@
+{
+  "label": { "type": "string", "default": "LOGGING" },
+  "name": { "type": "string", "default": "logging" },
+  "namespace": { "type": "string", "default": "core_schemas" },
+  "prefix": { "type": "string", "default": "logging" },
+  "kind": { "type": "string", "default": "node" },
+
+  # This is the list of keys that will be used to create the index
+  # if list is empty then uuid would be used to create SHA1 hashs
+  "keys":
+    {
+      "type": "list",
+      "required": True,
+      "default": ["p_label", "p_name", "p_package", "p_language", "p_props", "timestamp"],
+    },
+
+  "props": 
+    { 
+        "required": True, 
+        "type": "dict", 
+        "schema": {
+          "__id": { "type": "string", "default": "str" },
+          "label": { "type": "string", "default": "str" },
+          "name": { "type": "string", "default": "str" },
+          "package": { "type": "string", "default": "str" },
+          "language": { "type": "string", "default": "str"},
+          "props": { "type": "string", "default": "str" },
+          # Timestamp of the commit 
+          "timestamp": { "type": "string", "default": "str" },
+          "run_time": { "type": "string", "default": "str" },
+        } 
+    },
+}

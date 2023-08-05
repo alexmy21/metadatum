@@ -1,0 +1,19 @@
+{
+  "label": { "type": "string", "default": "BATCH_COMPLETE" },
+  "name": { "type": "string", "default": "graph_builder" },
+  "version": { "type": "string", "default": "0.1.0" },
+  "package": { "type": "string", "default": "" },
+  "language": { "type": "string", "default": "python" },
+
+  "props":
+    {
+      "required": True,
+      "type": "dict",
+      "schema":
+        {
+          "parent_id": { "type": "string", "default": "str" },
+          "query": { "type": "string", "default": "str" },
+          "limit": { "type": "integer", "default": 100 }
+        },
+    },
+}

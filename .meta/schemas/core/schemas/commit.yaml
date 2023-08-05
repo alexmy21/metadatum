@@ -1,8 +1,8 @@
 {
+  "label": { "type": "string", "default": "COMMIT" },
   "name": { "type": "string", "default": "commit" },
   "namespace": { "type": "string", "default": "core_schemas" },
   "prefix": { "type": "string", "default": "commit" },
-  "label": { "type": "string", "default": "COMMIT" },
   "kind": { "type": "string", "default": "node" },
 
   "keys":
@@ -11,8 +11,7 @@
       "type": "list",
       "default": ["timestamp", "committer_name", "committer_email"],
     },
-  "version": { "type": "string", "default": "0.1.0" },
-
+    
   "props": 
     { 
       "required": True, 

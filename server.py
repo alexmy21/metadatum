@@ -5,6 +5,7 @@ from starlette.responses import JSONResponse
 from starlette.routing import Route
 
 from metadatum.controller import Controller
+from metadatum.bootstrap import Bootstrap
 from metadatum.utils import Utils as utl
 
 
@@ -18,6 +19,12 @@ async def post_method(request):
     return JSONResponse(response)
 
 def startup():
+    '''
+        Bootstrap ensures that the registry index and all core indices exist.
+        boot() command is idempotent. It will create indices if they don't exist.
+    '''
+    boot = Bootstrap()
+    boot.boot()
     print('Starlette started')
 
 routes = [

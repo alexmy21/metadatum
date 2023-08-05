@@ -22,17 +22,54 @@ local function PFEQUAL(hll1, hll2)
     return false
   end
 
-  local hll1_union = redis.call('PFMERGE', 'hll1_union', hll1, hll2)
-  local hll1_union_size = redis.call('PFCOUNT', 'hll1_union')
+  redis.call('PFMERGE', 'hll_union', hll1, hll2)
+  local hll_union_size = redis.call('PFCOUNT', 'hll_union')
 
   -- Clean temporary HLL union key
-  redis.call('DEL', 'hll1_union')
+  redis.call('DEL', 'hll_union')
 
-  if hll1_union_size ~= hll1_size then
+  if hll_union_size ~= hll1_size then
     return false
   end
 
   return true
+end
+
+-- count intersection of two hyperloglog structures
+local function PFICOUNT(hll1, hll2)
+  local hll1_size = redis.call('PFCOUNT', hll1)
+  local hll2_size = redis.call('PFCOUNT', hll2)
+  if hll1_size ~= hll2_size then
+    return false
+  end
+
+  redis.call('PFMERGE', 'hll_union', hll1, hll2)
+  local hll1_union_size = redis.call('PFCOUNT', 'hll_union')  
+
+  -- Clean temporary HLL union key
+  redis.call('DEL', 'hll_union')
+
+  return hll1_size + hll2_size - hll1_union_size
+end
+
+-- HLL similarity left match
+local function PFLMATCH(hll1, hll2)
+  return PFICOUNT(hll1, hll2) / redis.call('PFCOUNT', hll1)
+end
+
+-- HLL similarity right match
+local function PFRMATCH(hll1, hll2)  
+  return PFICOUNT(hll1, hll2) / redis.call('PFCOUNT', hll2)
+end
+
+-- HLL similarity Jackard match
+local function PFMMATCH(hll1, hll2)
+  redis.call('PFMERGE', 'hll_union', hll1, hll2)
+  local hll1_union_size = redis.call('PFCOUNT', 'hll_union')
+  -- Clean temporary HLL union key
+  redis.call('DEL', 'hll_union')
+
+  return PFICOUNT(hll1, hll2) / hll1_union_size
 end
 
 -- Each term is added to the big index as a separate entry ('big_idx:' prefix).
@@ -181,3 +218,7 @@ end
 
 redis.register_function('big_index_update', big_index_update)
 redis.register_function('commit', commit)
+redis.register_function('PFICOUNT', PFICOUNT)
+redis.register_function('PFLMATCH', PFLMATCH)
+redis.register_function('PFRMATCH', PFRMATCH)
+redis.register_function('PFMMATCH', PFMMATCH)

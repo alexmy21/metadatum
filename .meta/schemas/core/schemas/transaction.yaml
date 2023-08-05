@@ -1,13 +1,11 @@
 {
+  "label": { "type": "string", "default": "TRANSACTION" },
   "name": { "type": "string", "default": "transaction" },
   "namespace": { "type": "string", "default": "core_schemas" },
   "prefix": { "type": "string", "default": "transaction" },
-  "label": { "type": "string", "default": "TRANSACTION" },
   "kind": { "type": "string", "default": "node" },
 
-  "keys":
-    { "required": True, "type": "list", "default": [ "item_prefix","item_id",] },
-  "version": { "type": "string", "default": "str" },
+  "keys": { "required": True, "type": "list", "default": [ "item_prefix","item_id",] },
 
   "props":
     {
@@ -15,7 +13,7 @@
       "type": "dict",
       "schema":
         {
-          "namespace": { "type": "string", "required": True, "default": "str" },
+          "schema_id": { "type": "string", "required": True, "default": "str" },
           "item_id": { "type": "string", "required": True, "default": "str" },
           "item_prefix": { "type": "string", "required": True, "default": "str" },
           "url": { "type": "string", "required": True, "default": "str" },

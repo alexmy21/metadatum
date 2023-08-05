@@ -77,6 +77,24 @@ class Commands:
     def commitGraph(self, graph: Graph):
         graph.commit()
 
+    # delete graph
+    def deleteGraph(self, graph: Graph):
+        graph.delete()
+
+    # compare elements from list pairwize
+    def compare(self, list: list, key: str) -> bool:
+        for i in range(len(list) - 1):
+            if list[i].get(key) != list[i+1].get(key):
+                return False
+        return True
+
+
+    # build graph from list of nodes
+    def buildGraph(self, graph: Graph, nodes: list[Node], edges: list[Edge]):
+        self.addNodes(graph, nodes)
+        self.addEdges(graph, edges)
+        self.commitGraph(graph)
+
     '''
         Redisearch support methods
     '''    
@@ -108,7 +126,15 @@ class Commands:
         from IDX_REG (reg) and current index schema (idx)
     '''
     # Create index hash
-    def createIndexHash(self, redis, reg:dict, idx: dict, schema_path) -> str|None:
+    def createIndexHash(self, redis, idx: dict, schema_path):
+        '''
+            Gete registry schema reference
+        '''
+        dir = cnf.settings.dot_meta
+        reg_file= os.path.join(dir, cnf.settings.indices.registry)
+        reg_props, reg_doc = utl.getProps(utl.getSchemaFromFile(reg_file), reg_file)
+
+        # print(reg_doc)
 
         sch = utl.getSchemaFromFile(schema_path)
 
@@ -120,10 +146,10 @@ class Commands:
             voc.NAME: idx.get(voc.NAME),
             voc.NAMESPACE: idx.get(voc.NAMESPACE),
             voc.ITEM_PREFIX: 'registry',
-            voc.LABEL: reg.get(voc.LABEL),
-            voc.KIND: reg.get(voc.KIND),
-            voc.COMMIT_ID: reg.get(voc.PROPS).get(voc.COMMIT_ID),
-            voc.COMMIT_STATUS: reg.get(voc.PROPS).get(voc.COMMIT_STATUS),
+            voc.LABEL: 'REGISTER', #reg.get(voc.LABEL),
+            voc.KIND: reg_doc.get(voc.KIND), # reg
+            voc.COMMIT_ID: reg_doc.get(voc.PROPS).get(voc.COMMIT_ID), # reg
+            voc.COMMIT_STATUS: reg_doc.get(voc.PROPS).get(voc.COMMIT_STATUS), # reg
             voc.SOURCE: str(sch)
         }
         # logging.debug('IDX_REG record: {}'.format(idx_reg_dict))
@@ -135,7 +161,7 @@ class Commands:
             after commiting transaction.
         '''
         _pref = utl.underScore('registry')
-        k_list: dict = reg.get(voc.KEYS)
+        k_list: dict = reg_doc.get(voc.KEYS)
 
         sha_id = utl.sha1(k_list, map)
         # add item ID (__id) to map
@@ -145,7 +171,7 @@ class Commands:
 
         redis.hset(full_id, mapping=map)
 
-        return sha_id
+        return reg_doc, sha_id
 
     '''
         Aggregated functions that support index creation
@@ -162,15 +188,15 @@ class Commands:
 
         # logging.debug(f'{reg}, \n, {idx}')
 
-        sha_id = self.createIndexHash(redis, reg, idx, idx_reg_file)
+        reg_doc, sha_id = self.createIndexHash(redis, idx, idx_reg_file)
         hash = self.txCreate(redis, proc_name, reg.get(voc.NAMESPACE), sha_id, reg.get(voc.PREFIX), idx_reg_file, voc.COMPLETE)
 
         return reg, sha_id
 
     # Create user defined index from .yaml file
-    def createUserIndex(self, redis, reg:dict, schema_file, proc_name) -> dict|None:
+    def createUserIndex(self, redis, schema_file, proc_name) -> dict|None:
         idx = self.createIndex(redis, schema_file)
-        sha_id = self.createIndexHash(redis, reg, idx, schema_file)
+        reg, sha_id = self.createIndexHash(redis, idx, schema_file)
         # redis, proc_ref:str, namespace:str, item_id:str, item_prefix:str, url:str, status: str
         _hash = self.txCreate(redis, proc_name, idx.get(voc.NAMESPACE), sha_id, reg.get(voc.PREFIX), schema_file, voc.COMPLETE)
 
@@ -211,6 +237,29 @@ class Commands:
         return sha_id
         
 
+    def updateLog(self, redis, data:dict, t1, prefix:str='logging') -> str|None:
+
+        key_list = ["label", "version", "package", "name", "language", "props"]
+
+        map = {}
+        map[voc.LABEL] = data.get(voc.LABEL)
+        map[voc.VERSION] = data.get(voc.VERSION)
+        map[voc.PACKAGE] = data.get(voc.PACKAGE)
+        map[voc.NAME] = data.get(voc.NAME)
+        map[voc.LANGUAGE] = data.get(voc.LANGUAGE)  
+        map[voc.PROPS] = str(data.get(voc.PROPS))        
+
+        sha_id = utl.sha1(key_list, map)
+        # add item ID (__id) to map
+        map[voc.ID] = sha_id
+        map[voc.TIMESTAMP] = utl.timestamp()
+        map['run_time'] = time.perf_counter() - t1
+
+        full_id = utl.fullId(prefix, sha_id)
+        redis.hset(full_id, mapping = map)
+
+        return sha_id
+
     '''
         Create hash record for BIG_IDX index in Redis, hash key is sha1 of the term 
     '''
@@ -231,13 +280,13 @@ class Commands:
         about the resource including the URL reference to resource and its status.
     '''
     # This is one of the methods that populates 'transaction' index 
-    def txCreate(self, redis, proc_ref: str, item_namespace:str, sha_id: str, item_prefix: str, url:str, status: str) -> dict|None:
+    def txCreate(self, redis, proc_ref: str, schema_id:str, sha_id: str, item_prefix: str, url:str, status: str) -> dict|None:
         full_id = utl.fullId(voc.TRANSACTION, sha_id)
         map:dict = redis.hgetall(full_id)
 
         _map = {}
         _map[voc.PROCESSOR_REF] = proc_ref
-        _map[voc.ITEM_NAMESPACE] = item_namespace
+        _map[voc.SCHEMA_ID] = schema_id
         _map[voc.ITEM_ID] = sha_id
         _map[voc.ITEM_PREFIX] = item_prefix
         _map[voc.URL] = url
@@ -258,9 +307,7 @@ class Commands:
     def txStatus(self, redis, proc_id: str, proc_uuid: str, item_id: str, status: str) -> dict|None:
         
         _map:dict = redis.hgetall(item_id) 
-        map = dict((k.decode('utf8'), v.decode('utf8')) for k, v in _map.items())  
-
-        print(f'item_id: {item_id}, map: {map}')
+        map = dict((k.decode('utf8'), v.decode('utf8')) for k, v in _map.items()) 
 
         if map == None:
             return None
@@ -292,15 +339,15 @@ class Commands:
     '''
         Running provided search query
     '''
-    def search(self, redis, index: str, query: str|Query, limit: int = 10, query_params: dict|None = None) -> dict|None:
-        _query: Query = Query(query).no_content(True).paging(0, limit)
-        if query_params == None:
-            result = redis.ft(index).search(_query)
-            doc: Document = result.docs[0]
-            doc.id
-            return result
-        else:
-            return redis.ft(index).search(query, query_params)
+    def search(self, redis, index: str, query: str, limit: int = 1000) -> dict|None:
+        # _query: Query = Query(query).no_content(True).paging(0, limit)
+        # if query_params == None:
+        #     result = redis.ft(index).search(_query)
+        #     doc: Document = result.docs[0]
+        #     doc.id
+        #     return result
+        # else:
+            return redis.ft(index).search(query)
 
     
     '''
@@ -347,11 +394,9 @@ class Commands:
             text = str(text.decode())
         else:
             text = str(text)
-
         
         tokens = set(text.split())
         # set(nltk.word_tokenize(text))
-
         t_set = set()
         _digits = re.compile('\d')
         for word in tokens:

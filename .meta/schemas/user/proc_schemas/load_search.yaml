@@ -1,17 +1,15 @@
 {
+  "label": { "type": "string", "default": "SOURCE" },
+  "name": { "type": "string", "default": "load_search.py" },
   "namespace": { "type": "string", "default": "user_proc_schemas" },
-  "name": { "type": "string", "default": "main_core" },
-  "prefix": { "type": "string", "default": "main_core" },
-  "label": { "type": "string", "default": "PROCESSOR" },
+  "prefix": { "type": "string", "default": "load_search" },
   "kind": { "type": "string", "default": "node" },
 
-  "keys":
-    {
+  "keys": {
       "required": True,
       "type": "list",
-      "default": ["version", "package", "url"],
+      "default": ["version", "package", "query"],
     },
-  "version": { "type": "string", "default": "str" },
 
   "props":
     {
@@ -23,10 +21,7 @@
           "version": { "type": "string", "default": "0.1.0" },
           "package": { "type": "string", "default": "." },
           "language": { "type": "string", "default": "python" },
-
-          "url": { "type": "string", "default": "str" },
-          "commit_id": { "type": "string", "default": "und" },
-          "commit_status": { "type": "string", "default": "und" },
+          "query": { "type": "string", "default": "str" }
         },
     },
 }

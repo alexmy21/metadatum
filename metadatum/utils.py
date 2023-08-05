@@ -1,4 +1,5 @@
 import csv
+import datetime
 import importlib
 import re
 import string
@@ -31,6 +32,9 @@ import config as cnf
 class Utils:
 
     doc_0 = {'props': {}}
+
+    def timestamp():
+        return datetime.datetime.now().strftime("%Y-%m-%d-%H:%M:%S")
 
     def importConfig():
         import sys

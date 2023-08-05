@@ -13,7 +13,7 @@ class Bootstrap:
 
     def boot(self):
         pool = redis.ConnectionPool(host = cnf.settings.redis.host, port = cnf.settings.redis.port, db = 0)
-        r = redis.Redis(connection_pool = pool)
+        rs = redis.Redis(connection_pool = pool)
 
         cmd = Commands()
 
@@ -21,7 +21,7 @@ class Bootstrap:
         registry = os.path.join(dir, cnf.settings.indices.registry)
         # logging.debug(f"idx_reg.yaml path {idx_reg_file}")
 
-        reg, sha_id = cmd.createRegistryIndex(r, registry, 'bootstrap')
+        reg, sha_id = cmd.createRegistryIndex(rs, registry, 'bootstrap')
 
         dir_core = os.path.join(dir, cnf.settings.indices.dir_core)
 
@@ -31,17 +31,17 @@ class Bootstrap:
 
         for lib_file in file_list:
             logging.debug(lib_file)
-            cmd.loadLib(r, lib_file, True)
+            cmd.loadLib(rs, lib_file, True)
 
         # list all files with ext in directory
         file_list = utl.listAllFiles(dir_core, '.yaml')
         for schema_file in file_list:
             logging.debug(schema_file)
-            reg, idx, sha_id = cmd.createUserIndex(r, reg, schema_file, 'bootstrap')
-            logging.debug(cmd.parseDocument(r, reg.get(voc.PREFIX) + sha_id, schema_file))
+            reg, idx, sha_id = cmd.createUserIndex(rs, schema_file, 'bootstrap')
+            logging.debug(cmd.parseDocument(rs, reg.get(voc.PREFIX) + sha_id, schema_file))
 
         # Submit processing results
-        cmd.submit(r, 'bootstrap', voc.COMPLETE, 25)
+        cmd.submit(rs, 'bootstrap', voc.COMPLETE, 25)
 
         return reg, idx, sha_id
 

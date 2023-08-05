@@ -24,7 +24,7 @@ def run(data: Document) -> dict|None:
     _map:dict = rs.hgetall(data.id)
     map = dict((k.decode('utf8'), v.decode('utf8')) for k, v in _map.items())
     file = map[voc.URL]    
-    f_prefix = utl.underScore(map.get(voc.ITEM_PREFIX))
+    f_prefix = map.get(voc.ITEM_PREFIX)
     f_sha_id = map.get(voc.ITEM_ID)
 
     cmd = Commands()

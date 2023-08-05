@@ -1,8 +1,8 @@
 {
+  "label": { "type": "string", "default": "COMMIT_TAIL" },
   "name": { "type": "string", "default": "commit_tail" },
   "namespace": { "type": "string", "default": "core_schemas" },
   "prefix": { "type": "string", "default": "commit_tail" },
-  "label": { "type": "string", "default": "COMMIT_TAIL" },
   "kind": { "type": "string", "default": "node" },
 
   # This is the list of keys that will be used to create the index
@@ -13,7 +13,6 @@
       "required": True,
       "default": [],
     },
-  "version": { "type": "string", "default": "str" },
 
   "props": 
     { 

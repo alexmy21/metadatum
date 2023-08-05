@@ -1,18 +1,15 @@
 {
+  "label": { "type": "string", "default": "FILE" },
   "name": { "type": "string", "default": "file" },
   "namespace": { "type": "string", "default": "user_schemas" },
   "prefix": { "type": "string", "default": "file" },
-  "label": { "type": "string", "default": "FILE" },
-
   "kind": { "type": "string", "default": "node" },
 
-  "keys":
-    {
+  "keys": {
       "type": "list",
       "required": True,
       "default": ["parent_id", "url", "file_type"],
     },
-  "version": { "type": "string", "default": "str" },
 
   "props":
     {
@@ -21,6 +18,7 @@
       "schema":
         {
           "__id": { "type": "string", "default": "str" },
+          "schema_id": { "type": "string", "required": True, "default": "str" },
           "parent_id": { "type": "string", "required": True, "default": "str" },
           "url": { "type": "string", "required": True, "default": "string" },
           "file_type": { "type": "string", "required": True, "default": "str" },

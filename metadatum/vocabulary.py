@@ -26,6 +26,7 @@ class Vocabulary:
     TIMESTAMP = 'timestamp'
     PROC_REG = 'proc_reg'
     BIG_IDX = 'big_idx'
+    BI_REF = 'bi_ref'
     HLL = 'hll'
 
     # Schema top properties
@@ -53,6 +54,7 @@ class Vocabulary:
 
     # TRANSACTION
     ITEM_NAMESPACE = 'item_namespace'
+    SCHEMA_ID = 'schema_id'
     ITEM_ID = 'item_id'
     ITEM_PREFIX = 'item_prefix'
     ITEM_TYPE = 'item_type'

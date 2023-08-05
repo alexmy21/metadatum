@@ -5,13 +5,11 @@
   "prefix": { "type": "string", "default": "file_meta" },
   "kind": { "type": "string", "default": "node" },
 
-  "keys":
-    {
+  "keys": {
       "required": True,
       "type": "list",
       "default": ["version", "package", "url"],
     },
-  "version": { "type": "string", "default": "str" },
 
   "props":
     {
