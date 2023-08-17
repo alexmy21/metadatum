@@ -43,6 +43,9 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
+bin
+lib
+lib64
 
 ### Vapor ###
 Config/secrets

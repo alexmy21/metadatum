@@ -1,0 +1,36 @@
+{
+  "label": { "type": "string", "default": "EDGE" },
+  "name": { "type": "string", "default": "edge" },
+  "namespace": { "type": "string", "default": "core_schemas" },
+  "prefix": { "type": "string", "default": "edge" },
+  "kind": { "type": "string", "default": "edge" },
+
+  # This is the list of keys that will be used to create the index
+  # if list is empty then uuid would be used to create SHA1 hashs
+  "keys":
+    {
+      "type": "list",
+      "required": True,
+      "default": ["id_1", "id_2", ],
+    },
+
+  "props": 
+    { 
+        "required": True, 
+        "type": "dict", 
+        "schema": {
+          "__id": { "type": "string", "required": True, "default": "str" },
+          "schema_id": { "type": "string", "required": True, "default": "str" },
+          "label": { "type": "string", "required": True, "default": "str" },
+          "id_1": { "type": "string", "required": True, "default": "str" },
+          "labe_1": { "type": "string", "required": True, "default": "str" },
+          "id_2": { "type": "string", "required": True, "default": "str" },
+          "labe_2": { "type": "string", "required": True, "default": "str" },
+          "l_match": { "type": "integer", "default": 0 },
+          "r_match": { "type": "integer", "default": 0},
+          "m_match": { "type": "integer", "default": 0 },
+          "commit_id": { "type": "string", "default": "und"},
+          "commit_status": { "type": "string", "default": "und"}
+        } 
+    },
+}

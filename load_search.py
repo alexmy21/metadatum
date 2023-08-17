@@ -34,17 +34,20 @@ def run(props: dict = None):
             bi_ref_id = utl.fullId(voc.BI_REF, sha_id)
             t_set= t_set.union(rs.smembers(bi_ref_id))
 
+        # print('t_set: ', t_set)
+        
         if len(t_set) == 0:
             return props
         else:
             for t in t_set:
-                t_str = t.decode('utf-8')
+                t_str = str(t.decode('utf-8'))
                 item_prefix = utl.getIdPrefix(t_str)
                 item_sha_id = utl.getIdShaPart(t_str)
 
                 item_hash = rs.hgetall(utl.denormId(t_str))
-                url = item_hash.get(b'url').decode('utf-8')
-                schema_id = item_hash.get(b'schema_id').decode('utf-8')
+                # print('\n===============================item_hash: ', item_hash)
+                url = str(item_hash.get(b'url').decode('utf-8')) #.decode('utf-8')
+                schema_id = str(item_hash.get(b'schema_id').decode('utf-8')) #.decode('utf-8')
 
                 cmd.txCreate(rs, 'load_search', schema_id, item_sha_id, item_prefix, url, voc.WAITING) 
 

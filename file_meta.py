@@ -52,7 +52,7 @@ def run(props: dict = None):
                 'url': file,
                 'file_type': ext,
                 'size': os.path.getsize(file),
-                'doc:': ' ',
+                'doc': ' ',
                 'commit_id': 'und',
                 'commit_status': 'und'
             } 

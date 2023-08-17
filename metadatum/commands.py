@@ -1,12 +1,16 @@
+from ast import Dict, List
 import os
 import re
 # import string
 import logging
 import string
 import time
+from typing import Any
 
 import redis
-from redis.commands.graph import Graph, Node, Edge
+from redis.commands.graph.edge import Edge
+from redis.commands.graph.node import Node
+# from redis.commands.graph import Graph, Node, Edge
 # from redis.commands.graph import GraphCommands as gcmd
 
 from redis.commands.search.indexDefinition import IndexDefinition
@@ -14,6 +18,8 @@ from redis.commands.search.query import Query
 from redis.commands.search.document import Document
 
 from cerberus import Validator
+from cymple.builder import QueryBuilder
+
 
 from metadatum.vocabulary import Vocabulary as voc
 from metadatum.utils import Utils as utl
@@ -25,75 +31,46 @@ import textract
 utl.importConfig()
 import config as cnf
 
-class Commands:
+class Commands: 
     '''
         This is list of commands to work with RedisGraph
     '''
-    # Create Node
-    def createNode(self, _label: str, _props: dict) -> Node|None:
-        node = Node(label=_label, properties=_props)    
-        return node
-    
-    # Create Edge
-    def createEdge(self, node_1: Node, label: str, node_2: Node, props: dict) -> Edge|None:
-        edge = Edge(node_1, label, node_2, properties=props)    
-        return edge
+    def mergeNodeQuery(self, node_labels: list|str, properties: dict|str|Any = None):
+        return (QueryBuilder()
+                .merge()
+                .node(labels=node_labels, properties=properties)
+                )
 
-    # Add node to graph
-    def addNode(self, graph: Graph, node: Node):
-        graph.add_node(node)
+    def mergeEdgeQuery(self, e_label:str, e_label_left:str, e_left:dict, e_label_right:str, e_right:dict, e_props:dict):
+        
+        query = (QueryBuilder()
+            .match()
+            .node(labels=e_label_left, properties=e_left, ref_name='src')
+            .match()
+            .node(labels=e_label_right, properties=e_right, ref_name='dst')
+            .merge()
+            .node(ref_name='src')
+            .related_to(label=e_label, properties=e_props)
+            .node(ref_name='dst')
+            )
 
-    # Add list of Nodes to graph
-    def addNodes(self, graph: Graph, nodes: list):
-        graph.add_nodes(nodes)        
-    
-    # add edge to graph
-    def addEdge(self,  graph: Graph, edge: Edge):
-        graph.add_edge(edge) 
+        return query
+       
+    # Update Edge Index
+    def updateEdgeIndex(self, redis, keys:list, args:list, commit:bool):        
+        function = 'edge_index_update'
+        k_len = len(keys)
+        keys.extend(args)
+        # pprint(keys)
+        ret = redis.fcall(function, k_len, *keys)
+        if commit:
+            self.submit(redis, 'edge_index_update', 'waiting', 1000)
 
-    # add list of edges to graph
-    def addEdges(self, graph: Graph, edges: list):
-        graph.add_edges(edges)        
-    
-    # Merge Node
-    def mergeNode(self, graph: Graph, node: Node):
-        graph.merge(node) 
-    
-    # merge list of nodes
-    def mergeNodes(self, graph: Graph, nodes: list[Node]):
-        for node in nodes:
-            self.mergeNode(graph, node)
+        return ret
 
-    # Merge Edge
-    def mergeEdge(self, graph: Graph, edge: Edge):
-        graph.merge(edge)
-
-    # merge list of edges
-    def mergeEdges(self, graph: Graph, edges: list[Edge]):
-        for edge in edges:
-            self.mergeEdge(graph, edge)
-    
-    # commit graph      
-    def commitGraph(self, graph: Graph):
-        graph.commit()
-
-    # delete graph
-    def deleteGraph(self, graph: Graph):
-        graph.delete()
-
-    # compare elements from list pairwize
-    def compare(self, list: list, key: str) -> bool:
-        for i in range(len(list) - 1):
-            if list[i].get(key) != list[i+1].get(key):
-                return False
-        return True
-
-
-    # build graph from list of nodes
-    def buildGraph(self, graph: Graph, nodes: list[Node], edges: list[Edge]):
-        self.addNodes(graph, nodes)
-        self.addEdges(graph, edges)
-        self.commitGraph(graph)
+    def getRedisHash(self, redis, key) -> dict|None:
+        _map:dict = redis.hgetall(key)
+        return dict((k.decode('utf8'), v.decode('utf8')) for k, v in _map.items())
 
     '''
         Redisearch support methods
@@ -421,7 +398,7 @@ class Commands:
 
         _hll_id = utl.underScore(utl.fullId(voc.HLL, utl.getIdShaPart(norm_id)))
         count = redis.pfcount(_hll_id) 
-        print(_hll_id, ': ', count)  
+        # print(_hll_id, ': ', count)  
         
         return count
     
@@ -447,6 +424,8 @@ class Commands:
         function = "commit"
         keys = [commit_id, timestamp]
         keys.extend(tx_keys)
+
+        print(keys)
 
         return redis.fcall(function, 2, *keys)
     

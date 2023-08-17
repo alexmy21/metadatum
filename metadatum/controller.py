@@ -1,7 +1,7 @@
-import os
+# import os
 import time
 import redis
-import logging
+# import logging
 
 from metadatum.utils import Utils as utl
 from metadatum.vocabulary import Vocabulary as voc
@@ -77,13 +77,16 @@ class Controller:
         cmd = Commands()
         _data:dict = self.data.get(voc.PROPS)
         query = _data.get(voc.QUERY)
+        # print('query', query)
         resources = cmd.selectBatch(self.rs, voc.TRANSACTION, query, _data.get(voc.LIMIT))
+        # print('resources', resources.docs)
         ret = {}                    
         try: 
             if batch:
-                processed = self.processor.run(resources.docs)
+                processed = self.processor.run(resources.docs, self.props)
                 ret.update(processed)
-            else:     
+            else:  
+                print(self.name)   
                 for doc in resources.docs:
                     processed = self.processor.run(doc)        
                     ret.update(processed)

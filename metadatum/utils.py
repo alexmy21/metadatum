@@ -33,6 +33,12 @@ class Utils:
 
     doc_0 = {'props': {}}
 
+    def decodeList(list: list) -> list:
+        return [item.decode('utf8') for item in list]
+    
+    def decodeDict(dict: dict) -> dict:
+        return {k.decode('utf8'): v.decode('utf8') for k, v in dict.items()}
+
     def timestamp():
         return datetime.datetime.now().strftime("%Y-%m-%d-%H:%M:%S")
 
