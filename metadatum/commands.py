@@ -55,6 +55,21 @@ class Commands:
             )
 
         return query
+    
+    def buildIndex(self, r: redis.Redis, cnf_settings, schema_file:str, processor_ref:str):     
+
+        dir = cnf.settings.dot_meta
+        idx_file = os.path.join(dir, cnf_settings, schema_file)
+        '''
+            createUserIndex command is idempotent. We can run it to get latest version of the index schema
+            or create index if it doesn't exist.
+        '''
+        reg, idx, schema_sha_id = self.createUserIndex(r, idx_file, processor_ref)
+
+        self.parseDocument(r, 'registry' + schema_sha_id, idx_file)
+
+        return reg, idx, schema_sha_id
+
        
     # Update Edge Index
     def updateEdgeIndex(self, redis, keys:list, args:list, commit:bool):        
@@ -180,23 +195,17 @@ class Commands:
         return reg, idx, sha_id
     
     # Create record hash
-    def _updateRecordHash(self, redis, prefix: str, key_list: list, props:dict) -> str|None:
-        '''
-            Create hash record in Redis, hash key is sha1 of the list of keys
-            from the index schema. Prefix is underscored to indicate that this
-            record is not a part of the index yet. It would be added to the index
-            after commiting transaction.
-        '''
+    def _updateRecordHash(self, redis, prefix: str, key_list: list, props:dict) -> str|None:        
         _pref = utl.underScore(prefix)
+        return self.updateRecordHash(redis, _pref, key_list, props)
 
-        sha_id = utl.sha1(key_list, props)
-        # add item ID (__id) to props
-        props[voc.ID] = sha_id
+        # sha_id = utl.sha1(key_list, props)
+        # # add item ID (__id) to props
+        # props[voc.ID] = sha_id
 
-        full_id = utl.fullId(_pref, sha_id)
-        redis.hset(full_id, mapping = props)
-
-        return sha_id
+        # full_id = utl.fullId(_pref, sha_id)
+        # redis.hset(full_id, mapping = props)
+        # return sha_id
     
     def updateRecordHash(self, redis, prefix: str, key_list: list, props:dict) -> str|None:
         '''

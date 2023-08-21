@@ -15,7 +15,7 @@ with open(path.join(HERE, 'README.md'), encoding='utf-8') as f:
 # This call to setup() does all the work
 setup(
     name="metadatum",
-    version="0.1.3",
+    version="0.2.5",
     description="Demo library",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -38,11 +38,10 @@ setup(
     install_requires=[
         "numpy",
         "anyio",
-        "async-timeout",
         "Cerberus",
         "click",
         "h11",
-        "idna",
+        "idna==3.4",
         "numpy",
         "polars",
         "PyYAML",

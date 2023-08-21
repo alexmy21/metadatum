@@ -46,6 +46,8 @@ Temporary Items
 bin
 lib
 lib64
+share
+__pycache__
 
 ### Vapor ###
 Config/secrets

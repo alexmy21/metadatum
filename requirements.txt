@@ -2,8 +2,8 @@ anyio
 async-timeout
 Cerberus
 click
-h11
-idna
+h11==0.14.0
+idna==3.4
 numpy
 polars
 PyYAML
@@ -13,4 +13,4 @@ starlette
 uvicorn
 cymple
 dynaconf
-textract
+textract==1.6.5
