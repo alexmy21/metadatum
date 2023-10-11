@@ -16,6 +16,8 @@
           "schema_id": { "type": "string", "required": True, "default": "str" },
           "item_id": { "type": "string", "required": True, "default": "str" },
           "item_prefix": { "type": "string", "required": True, "default": "str" },
+          # Foe example, if the item is a file, then the item_type may be a file extension ".pdf"
+          "item_type": { "type": "string", "required": True, "default": "str" },
           "url": { "type": "string", "required": True, "default": "str" },
           "processor_ref": {"type": "string", "required": True, "default": "str" },
           "processor_uuid": {"type": "string", "required": True, "default": "" },

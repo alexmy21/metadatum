@@ -209,6 +209,8 @@ class Utils:
         
         if ':' not in norm_id and len(norm_id) > 40:
             return norm_id[:-40] + ':' + norm_id[-40:]
+        elif ':' in norm_id and len(norm_id) > 41:
+            return norm_id
         else:
             return None
 
@@ -284,3 +286,12 @@ class Utils:
     # get item from dict by condition and concatenate values into string
     def dropAndJoin(dict: dict, skip_keys: str, separator: str) -> str:
         return separator.join([v for k, v in dict.items() if k not in skip_keys])
+    
+    '''
+        File name manipulation. Returns filename_without_extension, file_extension
+    '''
+    def filename_ext(file_name: str) -> tuple:
+        path = file_name.path
+        filename = os.path.basename(path)
+        # filename_without_extension, file_extension = os.path.splitext(filename)
+        return os.path.splitext(file_name)

@@ -1,0 +1,13 @@
+README.md
+setup.py
+metadatum/__init__.py
+metadatum/bootstrap.py
+metadatum/commands.py
+metadatum/controller.py
+metadatum/utils.py
+metadatum/vocabulary.py
+metadatum.egg-info/PKG-INFO
+metadatum.egg-info/SOURCES.txt
+metadatum.egg-info/dependency_links.txt
+metadatum.egg-info/requires.txt
+metadatum.egg-info/top_level.txt

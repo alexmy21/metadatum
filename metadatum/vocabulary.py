@@ -1,5 +1,7 @@
 class Vocabulary:
     # Scripts and queries templates
+    # Some addition to vocabulary.py
+    # Here are another templates for scripts and queries
     tx_batch = "@processor_id: '{parent_id}' @status: '{status}' @item_prefix: '{item_prefix}' @item_type: '{item_type}'"
     
     OK = {'status': "OK"}
@@ -12,6 +14,11 @@ class Vocabulary:
     SCHEMAS = 'schemas'
     SCRIPTS = 'scripts'
     SQLITE_FILES = 'sqlite_files'
+
+    # Commit statuses
+    ORIGINAL = 'original'
+    UPDATED = 'updated'
+    DELETED = 'deleted'
 
     # Core schemas
     IDX_REG = 'idx_reg'
@@ -86,3 +93,5 @@ class Vocabulary:
     FILE_TYPE = 'file_type'
     DB = 'db'
     DB_TYPE = 'db_type'
+
+    TEXTRACT_EXT = ['.csv', '.doc', '.docx', '.eml', '.epub', '.gif', '.jpg', '.jpeg', '.json', '.html', '.htm', '.mp3', '.msg', '.odt', '.ogg', '.pdf', '.png', '.pptx', '.ps', '.rtf', '.tiff', '.tif', '.txt', '.wav', '.xlsx', '.xls']

@@ -181,7 +181,7 @@ class Commands:
         # logging.debug(f'{reg}, \n, {idx}')
 
         reg_doc, sha_id = self.createIndexHash(redis, idx, idx_reg_file)
-        hash = self.txCreate(redis, proc_name, reg.get(voc.NAMESPACE), sha_id, reg.get(voc.PREFIX), idx_reg_file, voc.COMPLETE)
+        hash = self.txCreate(redis, proc_name, reg.get(voc.NAMESPACE), sha_id, reg.get(voc.PREFIX), '.yaml', idx_reg_file, voc.COMPLETE)
 
         return reg, sha_id
 
@@ -190,7 +190,7 @@ class Commands:
         idx = self.createIndex(redis, schema_file)
         reg, sha_id = self.createIndexHash(redis, idx, schema_file)
         # redis, proc_ref:str, namespace:str, item_id:str, item_prefix:str, url:str, status: str
-        _hash = self.txCreate(redis, proc_name, idx.get(voc.NAMESPACE), sha_id, reg.get(voc.PREFIX), schema_file, voc.COMPLETE)
+        _hash = self.txCreate(redis, proc_name, idx.get(voc.NAMESPACE), sha_id, reg.get(voc.PREFIX), '.yaml', schema_file, voc.COMPLETE)
 
         return reg, idx, sha_id
     
@@ -266,7 +266,17 @@ class Commands:
         about the resource including the URL reference to resource and its status.
     '''
     # This is one of the methods that populates 'transaction' index 
-    def txCreate(self, redis, proc_ref: str, schema_id:str, sha_id: str, item_prefix: str, url:str, status: str) -> dict|None:
+    def txCreate(self, redis, proc_ref: str, schema_id:str, sha_id: str, item_prefix: str, item_type:str, url:str, status: str) -> dict|None:
+       
+        try:
+            schema_id = schema_id.decode('utf-8')
+        except (UnicodeDecodeError, AttributeError):
+            pass
+        try:
+            item_type = item_type.decode('utf-8')
+        except (UnicodeDecodeError, AttributeError):
+            pass
+
         full_id = utl.fullId(voc.TRANSACTION, sha_id)
         map:dict = redis.hgetall(full_id)
 
@@ -275,6 +285,7 @@ class Commands:
         _map[voc.SCHEMA_ID] = schema_id
         _map[voc.ITEM_ID] = sha_id
         _map[voc.ITEM_PREFIX] = item_prefix
+        _map[voc.ITEM_TYPE] = item_type
         _map[voc.URL] = url
         _map[voc.PROCESSOR_UUID] = ' '
         _map[voc.STATUS] = status
@@ -288,9 +299,13 @@ class Commands:
     '''
         proc_id is a normilized (full_id 'prefix:sha_id' without ':') processor id
         proc_uuid is a temporary UUID for locking item in TRANSACTION index for current processor
-        item_id is a nirmilized item id
+        item_id is a normalized item id
     ''' 
     def txStatus(self, redis, proc_id: str, proc_uuid: str, item_id: str, status: str) -> dict|None:
+        if voc.TRANSACTION in item_id:
+            item_id = utl.denormId(item_id)
+        else:
+            return None
         
         _map:dict = redis.hgetall(item_id) 
         map = dict((k.decode('utf8'), v.decode('utf8')) for k, v in _map.items()) 
@@ -314,10 +329,11 @@ class Commands:
         ret = {}                    
         try:            
             for doc in resources.docs:
-                map:dict = redis.hgetall(doc.id)
-                map[voc.PROCESSOR_UUID] = uuid
-                map[voc.STATUS] = voc.LOCKED
-                redis.hset(doc.id, mapping=map)
+                if voc.TRANSACTION in doc.id:
+                    map:dict = redis.hgetall(doc.id)
+                    map[voc.PROCESSOR_UUID] = uuid
+                    map[voc.STATUS] = voc.LOCKED
+                    redis.hset(doc.id, mapping=map)
         except:
             logging.error('ERROR: There is no data to process.')
 
@@ -348,11 +364,11 @@ class Commands:
         if result.docs == None or len(result.docs) == 0:
             return None
         else:
-            list = []
+            _list = []
             for doc in result.docs:
-                list.append(doc.id)
-
-            return list
+                _list.append(doc.id)
+                
+            return _list
 
     '''
         Tokenizes provided file, updates BIG_IDX, and Creates HLL in Redis for the document
@@ -364,18 +380,15 @@ class Commands:
         batch - is a number of words to be processed in one transaction
     '''
     def parseDocument(self, redis, id, file_name, bucket:int = 2, batch:int = 7000) -> int|None:
-
-        _file_name, file_extension = os.path.splitext(file_name)
-        text = None
-        if file_extension.lower() == '.yaml' or file_extension.lower() == '.yml':
-            text = utl.getSchemaFromFile(file_name) 
+        text = self.getText(file_name)        
+        if text == None:
+            logging.error(f'Cannot read file: {file_name}')
+            return None
         else:
-            try:
-                text = textract.process(file_name, encoding='utf-8')
-            except:
-                logging.error('Cannot process file: ' + file_name)
-                return 0
-            
+            return self.parseText(redis, id, text, bucket, batch)            
+        
+
+    def parseText(self, redis, id, text:str, bucket:int = 2, batch:int = 7000) -> int|None:
         if isinstance(text, bytes):
             text = str(text.decode())
         else:
@@ -405,12 +418,35 @@ class Commands:
             keys.extend(t_list[i:i + batch])            
             redis.fcall(function, 2, *keys)
 
-        _hll_id = utl.underScore(utl.fullId(voc.HLL, utl.getIdShaPart(norm_id)))
+        hll_pref = 'hll_' + utl.getIdPrefix(norm_id)
+        _hll_id = utl.underScore(utl.fullId(hll_pref, utl.getIdShaPart(norm_id)))
         count = redis.pfcount(_hll_id) 
-        # print(_hll_id, ': ', count)  
+        print(_hll_id, ': ', count)  
         
         return count
     
+    def getText(self, file_path:str) -> str|None:
+        _file_name, file_extension = os.path.splitext(file_path)
+        text = None
+        if file_extension.lower() == '.yaml' or file_extension.lower() == '.yml':
+            text = utl.getSchemaFromFile(file_path) 
+        elif file_extension.lower() in voc.TEXTRACT_EXT:
+            try:
+                text = textract.process(file_path, encoding='utf-8')
+            except:
+                logging.error('Cannot process file: ' + file_path)
+                return None
+        else:
+            # read file to string
+            try:
+                with open(file_path, mode = 'r', encoding="utf-8", errors="backslashreplace") as file:
+                    text = file.read()
+            except:
+                logging.error('Cannot read as texr file: ' + file_path)
+                return None
+            
+        return text
+
     # Create commit
     def createCommit(self, redis) -> str|None:
         t_stamp = time.time()
@@ -429,12 +465,10 @@ class Commands:
         return sha1_id, t_stamp
 
     # commit transaction
-    def commit(self, redis, commit_id:str, timestamp:str, tx_keys:list) -> int|None:
+    def commit(self, redis, commit_id:str, timestamp:str, tx_keys:list) -> int|None:        
         function = "commit"
         keys = [commit_id, timestamp]
         keys.extend(tx_keys)
-
-        print(keys)
 
         return redis.fcall(function, 2, *keys)
     
@@ -447,20 +481,25 @@ class Commands:
         # 2. Commit all processed files 
         query = f'(@processor_ref:{proc} @status:{status})'       
         committed = False
+        i = 0
         while(True):
+            i += 1
             # redis, idx_name: str, query:str, limit: int = 100
             keys = self.selectBatch(redis, 'transaction', query, limit)
-            list = self.docIdList(keys)            
-            if list != None and len(list) > 0:  
-                # commit command returns True if some documents were committed
-                committed = committed or self.commit(redis, c_sha_id, t_stamp, list)
-            else:
+            _list = self.docIdList(keys) 
+            if _list == None or len(_list) == 0 or i > limit:                    
                 break
+            else:
+                # commit command returns True if some documents were committed
+                committed = committed or eval(self.commit(redis, c_sha_id, t_stamp, _list).capitalize())
+            keys = None
         
         if not committed:
             # Remove empty commit from commit index
             logging.error(f"Empty commit: {c_sha_id} {t_stamp}")
             redis.delete(utl.fullId('commit', c_sha_id))
+
+        print('>>>>>>>', i)
 
         
     # convert list to set

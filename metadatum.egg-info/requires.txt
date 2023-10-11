@@ -1,0 +1,16 @@
+numpy
+anyio
+Cerberus
+click
+h11
+idna==3.4
+numpy
+polars
+PyYAML
+redis
+sniffio
+starlette
+uvicorn
+cymple
+dynaconf
+textract
